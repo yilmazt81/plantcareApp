@@ -7,16 +7,7 @@ import LinearGradient from 'react-native-linear-gradient';
 
 import i18n from '../i18n'; // i18n yapılandırması import edilmeli
 import { useTranslation } from 'react-i18next'; 
-import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
-
-const FB_APP_ID = '1225171182685499'; // <-- buraya kendi App ID'ni yaz
  
-
-// Hatalı native module erişimi engelleniyor
-if (WebBrowser?.maybeCompleteAuthSession) {
-  WebBrowser.maybeCompleteAuthSession();
-}
 export default function LoginScreen({ navigation }) {
   const { setIsLoggedIn } = useContext(AuthContext);
   const { t, i18n } = useTranslation();
@@ -25,29 +16,9 @@ export default function LoginScreen({ navigation }) {
     const newLang = i18n.language === 'tr' ? 'en' : 'tr';
     i18n.changeLanguage(newLang);
   };
- 
-    const discovery = {
-    authorizationEndpoint: 'https://www.facebook.com/v12.0/dialog/oauth',
-    tokenEndpoint: 'https://graph.facebook.com/v12.0/oauth/access_token',
-  };
+  
 
-
- 
-useEffect(() => {
-    if (response?.type === 'success') {
-      const { access_token } = response.params;
-      fetch(`https://graph.facebook.com/me?access_token=${access_token}&fields=id,name,email`)
-        .then(res => res.json())
-        .then(user => {
-          Alert.alert('Giriş Başarılı', `Hoş geldin, ${user.name}`);
-          console.log('Facebook kullanıcı bilgisi:', user);
-          // İstersen backend’e token gönder
-        })
-        .catch(error => {
-          console.error('Kullanıcı bilgisi alınamadı:', error);
-        });
-    }
-  }, [response]);
+  
   return (
     <LinearGradient colors={['#090979', '#00D4FF', '#020024']} style={styles.container}>
       <TouchableOpacity onPress={handleLanguageChange} style={styles.languageSwitcher}>
@@ -76,7 +47,7 @@ useEffect(() => {
       <Text style={styles.or}>{t("Or")}</Text>
 
       <View style={styles.socialContainer}>
-        <TouchableOpacity style={styles.socialButton}  onPress={() => promptAsync()} >
+        <TouchableOpacity style={styles.socialButton}    >
           <Icon name="facebook" size={20} color="white" />
           <Text style={styles.socialText}>{t("loginWithFacebook")}</Text>
         </TouchableOpacity>
