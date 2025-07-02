@@ -1,0 +1,11 @@
+{
+  "welcome": "Welcome",
+  "email": "Email",
+  "password": "Password",
+  "login": "Login",
+  "loginWithFacebook": "Login with Facebook",
+  "loginWithGoogle": "Login with Google",
+  "Or": "Or",
+  "register": "Register",
+  "forgotPassword": "Forgot Password?"
+}

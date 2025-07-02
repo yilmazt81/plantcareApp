@@ -1,0 +1,12 @@
+{
+  "welcome": "Hoş Geldiniz",
+  "email": "E-posta",
+  "password": "Şifre",
+  "login": "Giriş Yap",
+  "loginWithFacebook": "Facebook ile Giriş",
+  "loginWithGoogle": "Google ile Giriş",
+  "Or": "Veya",
+  "register": "Kayıt Ol",
+  "forgotPassword": "Şifremi Unuttum?"
+
+}
