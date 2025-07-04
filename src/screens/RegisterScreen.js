@@ -1,24 +1,58 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+ 
+import LinearGradient from 'react-native-linear-gradient';
 
-const RegisterScreen = () => {
-    const [username, setUsername] = useState('');
+
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+
+const RegisterScreen = ({ navigation }) => {
+    const [fullName, setFullName] = useState('');
+    const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const handleRegister = async () => {
+        try {
+            // Firebase Auth ile kullanıcı oluştur
+            
+            const userCredential = await auth().createUserWithEmailAndPassword(email, password);
+            const uid = userCredential.user.uid;
 
-    const handleRegister = () => {
-        // Handle registration logic here
-        console.log('Register:', { username, email, password });
+            // Firestore'a kullanıcı bilgilerini kaydet
+            await firestore().collection('users').doc(uid).set({
+                fullName: fullName,
+                phone: phone,
+                email: email,
+                createdAt: firestore.FieldValue.serverTimestamp(),
+            });
+
+            alert('Kayıt başarılı!');
+            navigation.navigate("Login"); // Kayıt başarılı olduktan sonra Login ekranına yönlendir
+        } catch (error) {
+            alert(error.message);
+            console.log('Registration error:', error);
+        }
     };
 
+ 
+
     return (
-        <View style={styles.container}>
+        <LinearGradient colors={['#090979', '#00D4FF', '#020024']} style={styles.container}>
             <Text style={styles.title}>Register</Text>
-            <TextInput
+             <TextInput
                 style={styles.input}
-                placeholder="Username"
-                value={username}
-                onChangeText={setUsername}
+                placeholder="Full Name"
+                value={fullName}
+                onChangeText={setFullName}
+                autoCapitalize="none"
+            />
+           
+             <TextInput
+                style={styles.input}
+                placeholder="Phone Number"
+                value={phone}
+                onChangeText={setPhone}
                 autoCapitalize="none"
             />
             <TextInput
@@ -37,7 +71,7 @@ const RegisterScreen = () => {
                 secureTextEntry
             />
             <Button title="Register" onPress={handleRegister} />
-        </View>
+        </LinearGradient>
     );
 };
 

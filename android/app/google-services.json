@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "418893376955",
+    "project_id": "plantcare-17800",
+    "storage_bucket": "plantcare-17800.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:418893376955:android:be6741e4304346096da89e",
+        "android_client_info": {
+          "package_name": "com.skosmartdevicemanager"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhNSuaB7v1H5WI7AKJeTxK_u9Nhc8osFA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

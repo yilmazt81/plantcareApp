@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Alert, StyleSheet, PermissionsAndroid, Platform } from 'react-native';
+import { View, Alert, StyleSheet, PermissionsAndroid, Platform,Text } from 'react-native';
 import { CameraKitCameraScreen } from 'react-native-camera-kit';
+ 
 
 export default function BarcodeScannerScreen({ navigation }) {
   const [scanned, setScanned] = useState(false);
@@ -33,14 +34,7 @@ export default function BarcodeScannerScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <CameraKitCameraScreen
-        showFrame={true}
-        scanBarcode={true}
-        laserColor={'red'}
-        frameColor={'white'}
-        colorForScannerFrame={'white'}
-        onReadCode={onBarcodeRead} // veya: onBarcodeRead
-      />
+          <Text>Home Screen</Text>
     </View>
   );
 }

@@ -1,24 +1,41 @@
-import React, { useContext ,useEffect} from 'react';
-import { AuthContext } from "../navigation/AppNavigator";
+import React, { useContext, useEffect,useState } from 'react'; 
 
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';  
+import Icon from 'react-native-vector-icons/FontAwesome';
 import LinearGradient from 'react-native-linear-gradient';
 
 import i18n from '../i18n'; // i18n yapılandırması import edilmeli
-import { useTranslation } from 'react-i18next'; 
- 
+import { useTranslation } from 'react-i18next';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+import { AuthContext } from '../navigation/AppNavigator';
+
 export default function LoginScreen({ navigation }) {
-  const { setIsLoggedIn } = useContext(AuthContext);
+ 
   const { t, i18n } = useTranslation();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const { setUserToken } = useContext(AuthContext);
+
+  const handleLogin = () => {
+    auth()
+      .signInWithEmailAndPassword(email, password)
+      .then(userCredential => {
+        const uid = userCredential.user.uid;
+        setUserToken(uid); // AppNavigator'da kullanıcıyı login etmiş sayıyoruz
+      })
+      .catch(error => {
+        alert(error.message); // örnek: Şifre hatalıysa gösterilir
+      });
+  };
 
   const handleLanguageChange = () => {
     const newLang = i18n.language === 'tr' ? 'en' : 'tr';
     i18n.changeLanguage(newLang);
   };
-  
 
-  
+
+
   return (
     <LinearGradient colors={['#090979', '#00D4FF', '#020024']} style={styles.container}>
       <TouchableOpacity onPress={handleLanguageChange} style={styles.languageSwitcher}>
@@ -33,17 +50,22 @@ export default function LoginScreen({ navigation }) {
         placeholder={t("email")}
         keyboardType="email-address"
         autoCapitalize="none"
+        value={email} onChangeText={setEmail}
       />
       <TextInput
         style={styles.input}
         placeholder={t("password")}
         secureTextEntry
+        value={password} onChangeText={setPassword} 
       />
 
-      <TouchableOpacity style={styles.loginButton}>
+      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
         <Text style={styles.loginText}>{t("login")}</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity style={styles.registerButton} onPress={() => navigation.navigate('Register')}>
+        <Text style={styles.loginText}>{t("register")}</Text>
+      </TouchableOpacity>
       <Text style={styles.or}>{t("Or")}</Text>
 
       <View style={styles.socialContainer}>
@@ -64,6 +86,7 @@ export default function LoginScreen({ navigation }) {
     </LinearGradient>
   );
 }
+ 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -104,6 +127,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  registerButton: {
+    backgroundColor: '#0984e3',
+    paddingVertical: 14,
+    borderRadius: 8,
+    width: '100%',
+    marginTop: 10,
+    alignItems: 'center',
+  },
   or: {
     marginVertical: 15,
     color: '#636e72',
@@ -130,7 +161,7 @@ const styles = StyleSheet.create({
     color: '#636e72',
     textDecorationLine: 'underline',
   },
-   languageSwitcher: {
+  languageSwitcher: {
     position: 'absolute', top: 40, right: 20,
     backgroundColor: '#dfe6e9', paddingVertical: 6,
     paddingHorizontal: 12, borderRadius: 20,
