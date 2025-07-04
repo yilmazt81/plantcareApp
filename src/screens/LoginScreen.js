@@ -1,4 +1,4 @@
-import React, { useContext, useEffect,useState } from 'react'; 
+import React, { useContext, useEffect, useState } from 'react';
 
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -9,9 +9,11 @@ import { useTranslation } from 'react-i18next';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { AuthContext } from '../navigation/AppNavigator';
-
-export default function LoginScreen({ navigation }) {
+import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
+import handleFacebookLogin from '../companent/facebookLogin'; // Facebook login fonksiyonunu import ediyoruz
  
+export default function LoginScreen({ navigation }) {
+
   const { t, i18n } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,6 +38,7 @@ export default function LoginScreen({ navigation }) {
 
 
 
+
   return (
     <LinearGradient colors={['#090979', '#00D4FF', '#020024']} style={styles.container}>
       <TouchableOpacity onPress={handleLanguageChange} style={styles.languageSwitcher}>
@@ -43,6 +46,9 @@ export default function LoginScreen({ navigation }) {
           {i18n.language === 'tr' ? '🇬🇧 EN' : '🇹🇷 TR'}
         </Text>
       </TouchableOpacity>
+      <Image  
+          source={require('../../assets/Logo.png')}
+      />
       <Text style={styles.title}>{t("welcome")}</Text>
 
       <TextInput
@@ -56,7 +62,7 @@ export default function LoginScreen({ navigation }) {
         style={styles.input}
         placeholder={t("password")}
         secureTextEntry
-        value={password} onChangeText={setPassword} 
+        value={password} onChangeText={setPassword}
       />
 
       <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
@@ -69,24 +75,17 @@ export default function LoginScreen({ navigation }) {
       <Text style={styles.or}>{t("Or")}</Text>
 
       <View style={styles.socialContainer}>
-        <TouchableOpacity style={styles.socialButton}    >
-          <Icon name="facebook" size={20} color="white" />
-          <Text style={styles.socialText}>{t("loginWithFacebook")}</Text>
-        </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#DB4437' }]}>
-          <Icon name="google" size={20} color="white" />
-          <Text style={styles.socialText}> {t("loginWithGoogle")}</Text>
-        </TouchableOpacity>
       </View>
 
       <TouchableOpacity>
         <Text style={styles.forgotPassword}>{t("forgotPassword")}</Text>
       </TouchableOpacity>
+
     </LinearGradient>
   );
 }
- 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -158,8 +157,17 @@ const styles = StyleSheet.create({
   },
   forgotPassword: {
     marginTop: 15,
-    color: '#636e72',
+    color: '#FFFBDE',
     textDecorationLine: 'underline',
+  },
+
+  loginButton: {
+    backgroundColor: '#0984e3',
+    paddingVertical: 14,
+    borderRadius: 8,
+    width: '100%',
+    marginTop: 10,
+    alignItems: 'center',
   },
   languageSwitcher: {
     position: 'absolute', top: 40, right: 20,
