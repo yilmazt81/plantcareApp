@@ -11,13 +11,15 @@ import firestore from '@react-native-firebase/firestore';
 import { AuthContext } from '../navigation/AppNavigator';
 import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
 import handleFacebookLogin from '../companent/facebookLogin'; // Facebook login fonksiyonunu import ediyoruz
- 
+import ErrorMessage from '../companent/ErrorMessage';
+
 export default function LoginScreen({ navigation }) {
 
   const { t, i18n } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { setUserToken } = useContext(AuthContext);
+  const [loginError, setLoginError] = useState(null);
 
   const handleLogin = () => {
     auth()
@@ -27,7 +29,7 @@ export default function LoginScreen({ navigation }) {
         setUserToken(uid); // AppNavigator'da kullanıcıyı login etmiş sayıyoruz
       })
       .catch(error => {
-        alert(error.message); // örnek: Şifre hatalıysa gösterilir
+        setLoginError(t(error.code));// örnek: Şifre hatalıysa gösterilir
       });
   };
 
@@ -46,8 +48,8 @@ export default function LoginScreen({ navigation }) {
           {i18n.language === 'tr' ? '🇬🇧 EN' : '🇹🇷 TR'}
         </Text>
       </TouchableOpacity>
-      <Image  
-          source={require('../../assets/Logo.png')}
+      <Image
+        source={require('../../assets/Logo.png')}
       />
       <Text style={styles.title}>{t("welcome")}</Text>
 
@@ -65,9 +67,12 @@ export default function LoginScreen({ navigation }) {
         value={password} onChangeText={setPassword}
       />
 
+      <ErrorMessage message={loginError} />
+
       <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
         <Text style={styles.loginText}>{t("login")}</Text>
       </TouchableOpacity>
+
 
       <TouchableOpacity style={styles.registerButton} onPress={() => navigation.navigate('Register')}>
         <Text style={styles.loginText}>{t("register")}</Text>

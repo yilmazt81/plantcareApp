@@ -7,6 +7,13 @@
   "loginWithGoogle": "Google ile Giriş",
   "Or": "Veya",
   "register": "Kayıt Ol",
-  "forgotPassword": "Şifremi Unuttum?"
-
+  "forgotPassword": "Şifremi Unuttum?",
+  "auth/invalid-email": "Geçersiz e-posta adresi.",
+  "auth/user-disabled": "Bu hesap devre dışı bırakılmış.",
+  "auth/user-not-found": "Bu e-posta adresine ait kullanıcı bulunamadı.",
+  "auth/wrong-password": "Şifre hatalı.",
+  "auth/email-already-in-use": "Bu e-posta adresi zaten kullanılıyor.",
+  "auth/weak-password": "Şifre çok zayıf. Lütfen daha güçlü bir şifre belirleyin.",
+  "auth/network-request-failed": "İnternet bağlantısı yok veya zayıf.",
+  "auth/too-many-requests": "Çok fazla deneme yapıldı. Lütfen daha sonra tekrar deneyin."
 }
