@@ -12,7 +12,9 @@ import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen'; // yeni ekran
 import BarcodeScannerScreen from '../screens/BarcodeScannerScreen'; // yeni ekran
+import WifiSettingsScreen from '../screens/WifiSettingsScreen'; // yeni ekran
 import auth from '@react-native-firebase/auth';
+import WifiScannerScreen from '../screens/WifiScannerScreen'; // yeni ekran
 
 
 const AuthStack = createNativeStackNavigator();
@@ -79,6 +81,8 @@ const DashboardStack = () => {
         })}
       />
       <Stack.Screen name="BarcodeScanner" component={BarcodeScannerScreen} />
+      <Stack.Screen name="WifiSettings" component={WifiSettingsScreen} />
+      <Stack.Screen name="WifiScanner" component={WifiScannerScreen} />
     </Stack.Navigator>
   );
 };

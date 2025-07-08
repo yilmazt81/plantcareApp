@@ -20,5 +20,9 @@
   "auth/internal-error": "An unexpected error occurred. Please try again later.",
   "auth/operation-not-allowed": "This sign-in method is not enabled for your project.",
   "auth/account-exists-with-different-credential": "An account already exists with the same email address but different sign-in credentials.",
-  "auth/invalid-credential": "Invalid login credentials provided."
+  "auth/invalid-credential": "Invalid login credentials provided.",
+  "WifiSettings": "Your Home Wi-Fi Settings",
+  "WFSettingsSSID": "Network Name (SSID)",
+  "DeviceName": "Device Name",
+  "SetSettings": "Save Settings"
 }

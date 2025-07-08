@@ -15,5 +15,9 @@
   "auth/email-already-in-use": "Bu e-posta adresi zaten kullanılıyor.",
   "auth/weak-password": "Şifre çok zayıf. Lütfen daha güçlü bir şifre belirleyin.",
   "auth/network-request-failed": "İnternet bağlantısı yok veya zayıf.",
-  "auth/too-many-requests": "Çok fazla deneme yapıldı. Lütfen daha sonra tekrar deneyin."
+  "auth/too-many-requests": "Çok fazla deneme yapıldı. Lütfen daha sonra tekrar deneyin.",
+  "WifiSettings":"Evinizin Wi-Fi Ayarları",
+  "WFSettingsSSID":"Ağ Adı (SSID)",
+  "DeviceName":"Cihaz Adı",
+  "SetSettings": "Ayarları Kaydet"
 }
