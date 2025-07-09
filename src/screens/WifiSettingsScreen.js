@@ -10,14 +10,14 @@ const WifiSettingsScreen = ({ navigation }) => {
   const route = useRoute();
   const deviceType = route.params?.deviceType || 'V1'; // Varsayılan değer olarak 'V1' kullanılıyor
   const { devicessid = '', devicepassword = '' } = route.params || {};
-
+  const { defaultSsid = '' } = route.params || {};
 
   const [ssidDevice, setssidDevice] = useState(devicessid);
   const [passwordDevice, setpasswordDevice] = useState(devicepassword);
   const [deviceName, setDeviceName] = useState(''); // Yeni state değişkeni
 
 
-  const [ssid, setSsid] = useState('');
+  const [ssid, setSsid] = useState(defaultSsid);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -45,9 +45,9 @@ const WifiSettingsScreen = ({ navigation }) => {
     }
   };
   const connectToWifi = () => {
-    WifiManager.connectToProtectedSSID(ssid, password, false)
+    WifiManager.connectToProtectedSSID(ssidDevice, passwordDevice, false)
       .then(() => {
-        Alert.alert('Bağlantı Başarılı', `WiFi ağına bağlanıldı: ${ssid}`);
+        Alert.alert('Bağlantı Başarılı', `WiFi ağına bağlanıldı: ${ssidDevice}`);
       })
       .catch((error) => {
         console.log(error);
