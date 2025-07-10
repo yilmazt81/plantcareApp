@@ -5,6 +5,9 @@ import WifiManager from "react-native-wifi-reborn";
 import { useRoute } from '@react-navigation/native';
 import i18n from '../i18n'; // i18n yapılandırması import edilmeli
 import { useTranslation } from 'react-i18next';
+import ErrorMessage from '../companent/ErrorMessage';
+import LottieView from 'lottie-react-native';
+import Config from 'react-native-config';
 const WifiSettingsScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const route = useRoute();
@@ -12,14 +15,16 @@ const WifiSettingsScreen = ({ navigation }) => {
   const { devicessid = '', devicepassword = '' } = route.params || {};
   const { defaultSsid = '' } = route.params || {};
 
+
   const [ssidDevice, setssidDevice] = useState(devicessid);
   const [passwordDevice, setpasswordDevice] = useState(devicepassword);
-  const [deviceName, setDeviceName] = useState(''); // Yeni state değişkeni
-
+  const [deviceName, setDeviceName] = useState(deviceType); // Yeni state değişkeni
+  const [errorMessage, setErrorMessage] = useState(null);
 
   const [ssid, setSsid] = useState(defaultSsid);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [deviceWifiConnected, setDeviceWifiConnected] = useState(false);
 
   useEffect(() => {
 
@@ -28,7 +33,7 @@ const WifiSettingsScreen = ({ navigation }) => {
 
   const handleConnect = () => {
     // Burada WiFi bilgilerini kaydetme ya da gönderme işlemleri yapılabilir
-    Alert.alert('Bağlantı', `SSID: ${ssid}\nŞifre: ${password}`);
+    // Alert.alert('Bağlantı', `SSID: ${ssid}\nŞifre: ${password}`);
   };
   const requestPermissions = async () => {
     if (Platform.OS === 'android') {
@@ -47,14 +52,17 @@ const WifiSettingsScreen = ({ navigation }) => {
   const connectToWifi = () => {
     WifiManager.connectToProtectedSSID(ssidDevice, passwordDevice, false)
       .then(() => {
-        Alert.alert('Bağlantı Başarılı', `WiFi ağına bağlanıldı: ${ssidDevice}`);
+        //Alert.alert('Bağlantı Başarılı', `WiFi ağına bağlanıldı: ${ssidDevice}`);   
+        setDeviceWifiConnected(true);
+        //Config.mqtt_server = 'mqtts://m6e105d6.ala.eu-central-1.emqxsl.com';
       })
       .catch((error) => {
         console.log(error);
-        Alert.alert('Bağlantı Hatası', 'WiFi ağına bağlanılamadı.');
+        setErrorMessage(t("WFConnectionError"));
+        setDeviceWifiConnected(false);
+        //  Alert.alert('Bağlantı Hatası', 'WiFi ağına bağlanılamadı.');
       });
   };
-
 
   return (
     <View style={styles.container}>
@@ -111,6 +119,14 @@ const WifiSettingsScreen = ({ navigation }) => {
           onChangeText={setSsid}
         />
       </View>
+      <ErrorMessage message={errorMessage}></ErrorMessage>
+      {deviceWifiConnected &&
+        (
+          <LottieView source={require('../../assets/Animation_Connection.json')}
+            autoPlay loop style={{ width: 150, height: 150, alignSelf: 'center'}} />
+
+        )}
+
 
       <TouchableOpacity style={styles.button} onPress={connectToWifi}>
         <Text style={styles.buttonText}>{t("SetSettings")}</Text>

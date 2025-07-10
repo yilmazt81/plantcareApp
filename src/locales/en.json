@@ -24,5 +24,7 @@
   "WifiSettings": "Your Home Wi-Fi Settings",
   "WFSettingsSSID": "Network Name (SSID)",
   "DeviceName": "Device Name",
-  "SetSettings": "Save Settings"
+  "SetSettings": "Save Settings",
+  "WFConnectionError":"Wifi Cannot connected",
+  
 }

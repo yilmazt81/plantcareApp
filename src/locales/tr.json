@@ -19,5 +19,6 @@
   "WifiSettings":"Evinizin Wi-Fi Ayarları",
   "WFSettingsSSID":"Ağ Adı (SSID)",
   "DeviceName":"Cihaz Adı",
-  "SetSettings": "Ayarları Kaydet"
+  "SetSettings": "Ayarları Kaydet",
+  "WFConnectionError":"WiFi ağına bağlanılamadı."
 }
