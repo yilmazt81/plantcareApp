@@ -20,5 +20,6 @@
   "WFSettingsSSID":"Ağ Adı (SSID)",
   "DeviceName":"Cihaz Adı",
   "SetSettings": "Ayarları Kaydet",
-  "WFConnectionError":"WiFi ağına bağlanılamadı."
+  "WFConnectionError":"WiFi ağına bağlanılamadı.",
+  "UserNotLoggedIn": "Kullanıcı oturumu açmamış."
 }

@@ -26,5 +26,6 @@
   "DeviceName": "Device Name",
   "SetSettings": "Save Settings",
   "WFConnectionError":"Wifi Cannot connected",
+  "UserNotLoggedIn": "User is not logged in."
   
 }

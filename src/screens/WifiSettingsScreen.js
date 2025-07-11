@@ -8,6 +8,11 @@ import { useTranslation } from 'react-i18next';
 import ErrorMessage from '../companent/ErrorMessage';
 import LottieView from 'lottie-react-native';
 import Config from 'react-native-config';
+
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+ 
+
 const WifiSettingsScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const route = useRoute();
@@ -16,9 +21,10 @@ const WifiSettingsScreen = ({ navigation }) => {
   const { defaultSsid = '' } = route.params || {};
 
 
-  const [ssidDevice, setssidDevice] = useState(devicessid);
-  const [passwordDevice, setpasswordDevice] = useState(devicepassword);
+  const [ssidDevice] = useState(devicessid);
+  const [passwordDevice] = useState(devicepassword);
   const [deviceName, setDeviceName] = useState(deviceType); // Yeni state değişkeni
+  const[deviceId,setDeviceid]=useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
   const [ssid, setSsid] = useState(defaultSsid);
@@ -29,6 +35,7 @@ const WifiSettingsScreen = ({ navigation }) => {
   useEffect(() => {
 
     requestPermissions();
+
   }, []);
 
   const handleConnect = () => {
@@ -53,24 +60,67 @@ const WifiSettingsScreen = ({ navigation }) => {
     WifiManager.connectToProtectedSSID(ssidDevice, passwordDevice, false)
       .then(() => {
         //Alert.alert('Bağlantı Başarılı', `WiFi ağına bağlanıldı: ${ssidDevice}`);   
+        setDeviceid(generateUUID(20))
         setDeviceWifiConnected(true);
+        RegisterDevice();
         //Config.mqtt_server = 'mqtts://m6e105d6.ala.eu-central-1.emqxsl.com';
       })
       .catch((error) => {
         console.log(error);
-        setErrorMessage(t("WFConnectionError"));
+        setErrorMessage(error.message);
         setDeviceWifiConnected(false);
         //  Alert.alert('Bağlantı Hatası', 'WiFi ağına bağlanılamadı.');
       });
   };
+
+  function generateUUID(digits) {
+    let str = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVXZ';
+    let uuid = [];
+    for (let i = 0; i < digits; i++) {
+      uuid.push(str[Math.floor(Math.random() * str.length)]);
+    }
+    return uuid.join('');
+  }
+
+  const RegisterDevice = async () => {
+    try {
+      // Firebase Auth ile kullanıcı oluştur
+
+      const user = auth().currentUser;
+      console.log('Current User:', user);
+      var newId = generateUUID(20); 
+      debugger;
+      if (user) {
+
+        // Firestore'a kullanıcı bilgilerini kaydet
+        await firestore().collection('Device').doc(newId).set({
+          devicename: deviceName,
+          devicetype: deviceType,
+          userid: user.uid,
+          deviceid: deviceId,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        });
+
+        //alert('Kayıt başarılı!');
+        navigation.navigate("Home"); // Kayıt başarılı olduktan sonra NEXT ekranına yönlendir
+
+      } else {
+        setErrorMessage(t("UserNotLoggedIn"));
+      }
+
+    } catch (error) {
+      //alert(error.message);
+      setErrorMessage(error.message);
+      console.log('Registration error:', error);
+    }
+  };
+
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t("WifiSettings")}</Text>
       <Text style={styles.label}>{t("WFSettingsSSID")}</Text>
       <View style={styles.passwordContainer}>
-
-
         <TextInput
           style={[styles.input, { flex: 1 }]}
           placeholder={t("WFSettingsSSID")}
@@ -116,19 +166,19 @@ const WifiSettingsScreen = ({ navigation }) => {
           style={styles.input}
           placeholder={t("DeviceName")}
           value={deviceName}
-          onChangeText={setSsid}
+          onChangeText={setDeviceName}
         />
       </View>
       <ErrorMessage message={errorMessage}></ErrorMessage>
       {deviceWifiConnected &&
         (
           <LottieView source={require('../../assets/Animation_Connection.json')}
-            autoPlay loop style={{ width: 150, height: 150, alignSelf: 'center'}} />
+            autoPlay loop style={{ width: 150, height: 150, alignSelf: 'center' }} />
 
         )}
 
 
-      <TouchableOpacity style={styles.button} onPress={connectToWifi}>
+      <TouchableOpacity style={styles.button} onPress={RegisterDevice}>
         <Text style={styles.buttonText}>{t("SetSettings")}</Text>
       </TouchableOpacity>
     </View>

@@ -24,6 +24,7 @@ const RegisterScreen = ({ navigation }) => {
                 fullName: fullName,
                 phone: phone,
                 email: email,
+                userid:uid,                
                 createdAt: firestore.FieldValue.serverTimestamp(),
             });
 
