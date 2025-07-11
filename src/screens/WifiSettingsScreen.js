@@ -11,7 +11,7 @@ import Config from 'react-native-config';
 
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
- 
+
 
 const WifiSettingsScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -24,7 +24,7 @@ const WifiSettingsScreen = ({ navigation }) => {
   const [ssidDevice] = useState(devicessid);
   const [passwordDevice] = useState(devicepassword);
   const [deviceName, setDeviceName] = useState(deviceType); // Yeni state değişkeni
-  const[deviceId,setDeviceid]=useState(null);
+  const [smartdeviceId, setsmartdeviceId] = useState('');
   const [errorMessage, setErrorMessage] = useState(null);
 
   const [ssid, setSsid] = useState(defaultSsid);
@@ -56,24 +56,8 @@ const WifiSettingsScreen = ({ navigation }) => {
       }
     }
   };
-  const connectToWifi = () => {
-    WifiManager.connectToProtectedSSID(ssidDevice, passwordDevice, false)
-      .then(() => {
-        //Alert.alert('Bağlantı Başarılı', `WiFi ağına bağlanıldı: ${ssidDevice}`);   
-        setDeviceid(generateUUID(20))
-        setDeviceWifiConnected(true);
-        RegisterDevice();
-        //Config.mqtt_server = 'mqtts://m6e105d6.ala.eu-central-1.emqxsl.com';
-      })
-      .catch((error) => {
-        console.log(error);
-        setErrorMessage(error.message);
-        setDeviceWifiConnected(false);
-        //  Alert.alert('Bağlantı Hatası', 'WiFi ağına bağlanılamadı.');
-      });
-  };
 
-  function generateUUID(digits) {
+   function generateUUID(digits) {
     let str = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVXZ';
     let uuid = [];
     for (let i = 0; i < digits; i++) {
@@ -82,14 +66,39 @@ const WifiSettingsScreen = ({ navigation }) => {
     return uuid.join('');
   }
 
-  const RegisterDevice = async () => {
+  const connectToWifi = async () => {
+     var tmpdeviceId=   generateUUID(10);
+    
+   
+    setDeviceWifiConnected(true);
+    RegisterDevice(tmpdeviceId);
+    /* WifiManager.connectToProtectedSSID(ssidDevice, passwordDevice, false)
+       .then(() => {
+         //Alert.alert('Bağlantı Başarılı', `WiFi ağına bağlanıldı: ${ssidDevice}`);   
+         setDeviceid(generateUUID(20))
+         setDeviceWifiConnected(true);
+         RegisterDevice();
+         //Config.mqtt_server = 'mqtts://m6e105d6.ala.eu-central-1.emqxsl.com';
+       })
+       .catch((error) => {
+         console.log(error);
+         setErrorMessage(error.message);
+         setDeviceWifiConnected(false);
+         //  Alert.alert('Bağlantı Hatası', 'WiFi ağına bağlanılamadı.');
+       });
+       */
+  };
+
+ 
+
+  const RegisterDevice = async (newdeviceid) => {
     try {
       // Firebase Auth ile kullanıcı oluştur
 
       const user = auth().currentUser;
       console.log('Current User:', user);
-      var newId = generateUUID(20); 
-      debugger;
+      var newId = generateUUID(20);
+   
       if (user) {
 
         // Firestore'a kullanıcı bilgilerini kaydet
@@ -97,8 +106,13 @@ const WifiSettingsScreen = ({ navigation }) => {
           devicename: deviceName,
           devicetype: deviceType,
           userid: user.uid,
-          deviceid: deviceId,
+          deviceid: newdeviceid,
           createdAt: firestore.FieldValue.serverTimestamp(),
+          soilMoistureLevel:"", 
+          airHumidity:90,
+          temperature:0,
+          wifiName: ssid,
+          
         });
 
         //alert('Kayıt başarılı!');
@@ -159,6 +173,10 @@ const WifiSettingsScreen = ({ navigation }) => {
           />
         </TouchableOpacity>
       </View>
+      <View>
+
+         <TextInput value={smartdeviceId}></TextInput>
+      </View>
 
       <View>
         <Text style={styles.label}>{t("DeviceName")}</Text>
@@ -178,7 +196,7 @@ const WifiSettingsScreen = ({ navigation }) => {
         )}
 
 
-      <TouchableOpacity style={styles.button} onPress={RegisterDevice}>
+      <TouchableOpacity style={styles.button} onPress={connectToWifi}>
         <Text style={styles.buttonText}>{t("SetSettings")}</Text>
       </TouchableOpacity>
     </View>

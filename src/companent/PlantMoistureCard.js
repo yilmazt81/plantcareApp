@@ -60,7 +60,6 @@ const PlantMoistureCard = ({ plantName, soilMoistureLevel, airHumidity, temperat
             <View style={styles.leftColumn}>
                 <Text style={styles.plantName}>{plantName}</Text>
 
-
             </View>
             <View style={styles.middleColumn}>
 
@@ -113,6 +112,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         gap: 4,
     },
+    
     middleColumn: {
         alignItems: 'center',
         marginHorizontal: 10,
