@@ -27,5 +27,7 @@
   "Connected":"Bağlandı",
   "kuru":"Kuru",
   "nemli":"Nemli",
-  "normal":"Normal"
+  "normal":"Normal",
+  "StartWaterPomp":"Su Pompası Çalıştır",
+  "AirHumidity":"Hava Nemi"
 }

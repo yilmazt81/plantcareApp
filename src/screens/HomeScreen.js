@@ -58,7 +58,7 @@ const HomeScreen = ({ navigation }) => {
             <TouchableOpacity
                 key={device.id}
                 onPress={() => navigation.navigate('PlantBigView',
-                    { deviceId: device.id, deviceType: device.devicetype })}
+                    { deviceid: device.deviceid, deviceType: device.devicetype,devicename:device.devicename })}
             >
                 <PlantSmallView
                     key={device.id}

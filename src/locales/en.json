@@ -32,5 +32,8 @@
   "Connected": "Connected",
   "kuru": "Dry",
   "nemli": "wet",
-  "normal": "Standard"
+  "normal": "Standard",
+  "StartWaterPomp":"Start Water Pomp",
+  "AirHumidity":"Air Humidity"
+
 }
