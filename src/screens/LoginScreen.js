@@ -7,7 +7,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import i18n from '../i18n'; // i18n yapılandırması import edilmeli
 import { useTranslation } from 'react-i18next';
 import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+//import firestore from '@react-native-firebase/firestore';
 import { AuthContext } from '../navigation/AppNavigator';
 import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
 import handleFacebookLogin from '../companent/facebookLogin'; // Facebook login fonksiyonunu import ediyoruz

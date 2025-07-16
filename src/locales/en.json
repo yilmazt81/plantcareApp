@@ -25,7 +25,12 @@
   "WFSettingsSSID": "Network Name (SSID)",
   "DeviceName": "Device Name",
   "SetSettings": "Save Settings",
-  "WFConnectionError":"Wifi Cannot connected",
-  "UserNotLoggedIn": "User is not logged in."
-  
+  "WFConnectionError": "Wifi Cannot connected",
+  "UserNotLoggedIn": "User is not logged in.",
+  "Connecting": "Connecting...",
+  "ConnectionError": "Connection Error.",
+  "Connected": "Connected",
+  "kuru": "Dry",
+  "nemli": "wet",
+  "normal": "Standard"
 }

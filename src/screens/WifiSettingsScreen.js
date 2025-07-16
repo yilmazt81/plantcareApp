@@ -10,7 +10,7 @@ import LottieView from 'lottie-react-native';
 import Config from 'react-native-config';
 
 import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import  firestore   from '@react-native-firebase/firestore';
 
 
 const WifiSettingsScreen = ({ navigation }) => {
@@ -75,9 +75,9 @@ const WifiSettingsScreen = ({ navigation }) => {
     /* WifiManager.connectToProtectedSSID(ssidDevice, passwordDevice, false)
        .then(() => {
          //Alert.alert('Bağlantı Başarılı', `WiFi ağına bağlanıldı: ${ssidDevice}`);   
-         setDeviceid(generateUUID(20))
+       
          setDeviceWifiConnected(true);
-         RegisterDevice();
+         RegisterDevice(tmpdeviceId);
          //Config.mqtt_server = 'mqtts://m6e105d6.ala.eu-central-1.emqxsl.com';
        })
        .catch((error) => {

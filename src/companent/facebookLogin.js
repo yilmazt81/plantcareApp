@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import auth from '@react-native-firebase/auth';
+ 
 import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
 import { AuthContext } from '../navigation/AppNavigator';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +9,7 @@ export default function FacebookLoginButton() {
     const { t, i18n } = useTranslation();
     const handleFacebookLogin = async () => {
         try {
-            const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
+            /*const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
 
             if (result.isCancelled) {
                 throw 'Kullanıcı girişi iptal etti';
@@ -25,6 +25,7 @@ export default function FacebookLoginButton() {
             const userCredential = await auth().signInWithCredential(facebookCredential);
 
             setUserToken(userCredential.user.uid); // Oturum açıldı
+            */
         } catch (error) {
             alert(error.toString());
         }

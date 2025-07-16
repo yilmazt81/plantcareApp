@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
 import Icon from 'react-native-vector-icons/Ionicons';
 
 
@@ -15,7 +16,7 @@ import BarcodeScannerScreen from '../screens/BarcodeScannerScreen'; // yeni ekra
 import WifiSettingsScreen from '../screens/WifiSettingsScreen'; // yeni ekran
 import auth from '@react-native-firebase/auth';
 import WifiScannerScreen from '../screens/WifiScannerScreen'; // yeni ekran
-
+import PlantBigView from '../screens/devicescreen/plantvase/PlantBigView'; // yeni ekran
 
 const AuthStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -83,6 +84,7 @@ const DashboardStack = () => {
       <Stack.Screen name="BarcodeScanner" component={BarcodeScannerScreen} />
       <Stack.Screen name="WifiSettings" component={WifiSettingsScreen} />
       <Stack.Screen name="WifiScanner" component={WifiScannerScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="PlantBigView" component={PlantBigView} />
     </Stack.Navigator>
   );
 };

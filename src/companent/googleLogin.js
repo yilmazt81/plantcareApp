@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import auth from '@react-native-firebase/auth';
+ 
 import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
 import { AuthContext } from '../navigation/AppNavigator';
 import { useTranslation } from 'react-i18next';

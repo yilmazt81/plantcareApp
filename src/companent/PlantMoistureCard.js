@@ -50,7 +50,7 @@ const interpolateColor = (color1, color2, factor) => {
     return rgbToHex(result);
 };
 
-const PlantMoistureCard = ({ plantName, soilMoistureLevel, airHumidity, temperature }) => {
+const PlantMoistureCard = ({ plantName, soilMoistureLevel, airHumidity, temperature,deviceid }) => {
     const icon = getMoistureIcon(soilMoistureLevel);
     const tempColor = getTemperatureColor(temperature);
 

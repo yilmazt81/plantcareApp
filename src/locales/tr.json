@@ -21,5 +21,11 @@
   "DeviceName":"Cihaz Adı",
   "SetSettings": "Ayarları Kaydet",
   "WFConnectionError":"WiFi ağına bağlanılamadı.",
-  "UserNotLoggedIn": "Kullanıcı oturumu açmamış."
+  "UserNotLoggedIn": "Kullanıcı oturumu açmamış.",
+  "Connecting":"Bağlanılıyor...",
+  "ConnectionError":"Bağlantı hatası.",
+  "Connected":"Bağlandı",
+  "kuru":"Kuru",
+  "nemli":"Nemli",
+  "normal":"Normal"
 }

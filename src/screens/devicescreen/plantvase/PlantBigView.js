@@ -1,7 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useRoute } from '@react-navigation/native'; 
+const PlantBigView = ({ navigation }) => {
 
-const PlantBigView = () => {
+    const route = useRoute();
+    const deviceType = route.params?.deviceType
+
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Plant Vase</Text>
