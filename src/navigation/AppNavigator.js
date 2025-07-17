@@ -84,7 +84,7 @@ const DashboardStack = () => {
       <Stack.Screen name="BarcodeScanner" component={BarcodeScannerScreen} />
       <Stack.Screen name="WifiSettings" component={WifiSettingsScreen} />
       <Stack.Screen name="WifiScanner" component={WifiScannerScreen} options={{ presentation: 'modal' }} />
-      <Stack.Screen name="PlantBigView" component={PlantBigView} />
+      <Stack.Screen name="PlantBigView" component={PlantBigView} title="Bitki Özellikleri" />
     </Stack.Navigator>
   );
 };

@@ -11,7 +11,9 @@ import { getMoistureIcon, getSoilMoistureLevel } from './iconfunctions';
 import StatusCard from './StatusCard';
 import { useRoute } from '@react-navigation/native';
 
-import storage from '@react-native-firebase/storage';
+//import storage from '@react-native-firebase/storage';
+import { v2 as cloudinary } from 'cloudinary';
+
 
 import ErrorMessage from '../../../companent/ErrorMessage';
 
@@ -36,7 +38,7 @@ const PlantBigView = () => {
     const [icon, seticon] = useState(null);
     const [connected, setConnected] = useState(false);
     const [imageUri, setImageUri] = useState(null);
-    const [transferred,setTransferred]=useState(0);
+    const [transferred, setTransferred] = useState(0);
 
 
 
@@ -74,7 +76,7 @@ const PlantBigView = () => {
             uploadImage(uri);
         });
     };
- 
+
 
     const connectMqtt = () => {
         var topic = deviceid + '/sensorData';
@@ -146,39 +148,42 @@ const PlantBigView = () => {
 
 
     const uploadImage = async (uri) => {
+
         
-        const filename = uri.substring(uri.lastIndexOf('/') + 1);
-        const uploadUri = Platform.OS === 'ios' ? uri.replace('file://', '') : uri;
-
-        setUploading(true);
-        setTransferred(0);
-
-        const task = storage()
-            .ref(filename)
-            .putFile(uploadUri);
-        debugger;
-        // set progress state
-        task.on('state_changed', snapshot => {
-            setTransferred(
-                Math.round(snapshot.bytesTransferred / snapshot.totalBytes) * 10000
-            );
-        });
-
-        try {
-            await task;
-        } catch (e) {
-            console.error(e);
-            setErrorMessage(e.message);
-        }
-
-        setUploading(false);
-        Alert.alert(
-            'Photo uploaded!',
-            'Your photo has been uploaded to Firebase Cloud Storage!'
-        );
-
-        setImageUri(null);
+        /* const filename = uri.substring(uri.lastIndexOf('/') + 1);
+         const uploadUri = Platform.OS === 'ios' ? uri.replace('file://', '') : uri;
+ 
+         setUploading(true);
+         setTransferred(0);
+ 
+         const task = storage()
+             .ref(filename)
+             .putFile(uploadUri);
+         debugger;
+         // set progress state
+         task.on('state_changed', snapshot => {
+             setTransferred(
+                 Math.round(snapshot.bytesTransferred / snapshot.totalBytes) * 10000
+             );
+         });
+ 
+         try {
+             await task;
+         } catch (e) {
+             console.error(e);
+             setErrorMessage(e.message);
+         }
+ 
+         setUploading(false);
+         Alert.alert(
+             'Photo uploaded!',
+             'Your photo has been uploaded to Firebase Cloud Storage!'
+         );
+ 
+         setImageUri(null);
+         */
     };
+
     useEffect(() => {
         connectMqtt();
 

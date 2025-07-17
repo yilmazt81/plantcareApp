@@ -7,7 +7,7 @@ import i18n from '../../../i18n/'; // i18n yapılandırması import edilmeli
 import { useTranslation } from 'react-i18next';
 import mqtt from 'mqtt';
 
-import {getMoistureIcon,interpolateColor,getTemperatureColor,getSoilMoistureLevel} from './iconfunctions';
+import { getMoistureIcon, interpolateColor, getTemperatureColor, getSoilMoistureLevel } from './iconfunctions';
 
 
 
@@ -27,13 +27,8 @@ const PlantSmallView = ({ plantName, deviceid }) => {
 
     //const [soilMoistureLevel, setsoilMoistureLevel] = useState('normal'); // 'nemli', 'normal', 'kuru'
 
-
- 
-
     const connectMqtt = () => {
         var topic = deviceid + '/sensorData';
-
-
         const client = mqtt.connect(Config.MQTTWebSocket, {
             port: Config.MQTTWebSocketPort,
             clientId: 'rn_client_' + Math.random().toString(16).substr(2, 8),
@@ -51,7 +46,7 @@ const PlantSmallView = ({ plantName, deviceid }) => {
         });
 
         client.on('message', (topic, msg) => {
-        
+
             if (topic === topic) {
                 var jsonData = JSON.parse(msg.toString());
                 setSoilMoisture(jsonData.soil_moisture);
@@ -82,43 +77,49 @@ const PlantSmallView = ({ plantName, deviceid }) => {
     }, []);
 
     return (
-        <View style={styles.card}>
-            {/* Sol */}
-            <View style={styles.leftColumn}>
-                <Text style={styles.plantName}>{plantName}</Text>
+        <View>
+            <View style={styles.card}>
+                {/* Sol */}
+                <View style={styles.leftColumn}>
+                    <Text style={styles.plantName}>{plantName}</Text>
 
+                </View>
+                <View style={styles.middleColumn}>
+
+                    <Icon name={icon?.name} size={32} color={icon?.color} />
+                    <Text style={[styles.statusLabel, { color: icon?.color }]}>{t(icon?.label)} </Text>
+                </View>
+
+
+                {/* Orta - sıcaklık */}
+                <View style={styles.middleColumn}>
+                    <Icon name="thermometer" size={28} color={getTemperatureColor(temperature)} />
+                    <Text style={[styles.temperatureText, { color: getTemperatureColor(temperature) }]}>
+                        {temperature}°C
+                    </Text>
+                </View>
+
+                {/* Sağ */}
+                <View style={styles.rightColumn}>
+                    <Text style={styles.gaugeLabel}>{t("AirHumidity")}</Text>
+                    <AnimatedCircularProgress
+                        size={70}
+                        width={8}
+                        fill={airHumidity}
+                        tintColor="#00e0ff"
+                        backgroundColor="#e0e0e0"
+                        rotation={0}
+                    >
+                        {(fill) => (
+                            <Text style={styles.percentageText}>{`${Math.round(fill)}%`}</Text>
+                        )}
+                    </AnimatedCircularProgress>
+                </View>
             </View>
-            <View style={styles.middleColumn}>
 
-                <Icon name={icon?.name} size={32} color={icon?.color} />
-                <Text style={[styles.statusLabel, { color: icon?.color }]}>{t(icon?.label)} </Text>
+            <View>
+                <Text>{message}</Text>
             </View>
-
-
-            {/* Orta - sıcaklık */}
-            <View style={styles.middleColumn}>
-                <Icon name="thermometer" size={28} color={getTemperatureColor(temperature)} />
-                <Text style={[styles.temperatureText, { color: getTemperatureColor(temperature) }]}>
-                    {temperature}°C
-                </Text>
-            </View>
-
-            {/* Sağ */}
-            <View style={styles.rightColumn}>
-                <Text style={styles.gaugeLabel}>{t("AirHumidity")}</Text>
-                <AnimatedCircularProgress
-                    size={70}
-                    width={8}
-                    fill={airHumidity}
-                    tintColor="#00e0ff"
-                    backgroundColor="#e0e0e0"
-                    rotation={0}
-                >
-                    {(fill) => (
-                        <Text style={styles.percentageText}>{`${Math.round(fill)}%`}</Text>
-                    )}
-                </AnimatedCircularProgress>
-            </View>            
         </View>
     );
 };

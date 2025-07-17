@@ -11,13 +11,13 @@ export default function StatusCard({ icon, temperature, airHumidity, t }) {
     <View style={styles.card}>
       {/* Sol Kolon */}
       <View style={styles.leftColumn}>
-        <Icon name={icon?.name} size={32} color={icon?.color} />
+        <Icon name={icon?.name} size={60} color={icon?.color} />
         <Text style={[styles.statusLabel, { color: icon?.color }]}>{t(icon?.label)} </Text>
       </View>
 
       {/* Orta Kolon */}
       <View style={styles.middleColumn}>
-        <Icon name="thermometer" size={28} color={getTemperatureColor(temperature)} />
+        <Icon name="thermometer" size={50} color={getTemperatureColor(temperature)} />
         <Text style={[styles.temperatureText, { color: getTemperatureColor(temperature) }]}>
           {temperature}°C
         </Text>
@@ -27,7 +27,7 @@ export default function StatusCard({ icon, temperature, airHumidity, t }) {
       <View style={styles.rightColumn}>
         <Text style={styles.gaugeLabel}>{t("AirHumidity")}</Text>
         <AnimatedCircularProgress
-          size={70}
+          size={80}
           width={8}
           fill={airHumidity}
           tintColor="#00e0ff"
