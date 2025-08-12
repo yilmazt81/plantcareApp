@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Vase Configuration</title>
+    <style>
+        body {
+            background-color: #FF4500;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+        }
+        h1 {
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input[type=text], input[type=password], input[type=number] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 4px;
+            border-radius: 4px;
+            border: none;
+        }
+        button {
+            margin-top: 20px;
+            width: 100%;
+            padding: 10px;
+            background: white;
+            color: #FF4500;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Smart Vase Configuration</h1>
+        <label>WiFi SSID:
+            <input type="text" id="wifi_ssid">
+        </label>
+        <label>WiFi Password:
+            <input type="password" id="wifi_password">
+        </label>
+        <button onclick="saveConfig()">Save Configuration</button>
+    </div>
+
+    <script>
+        async function saveConfig() {
+            const config = {
+                wifi_ssid: document.getElementById("wifi_ssid").value,
+                wifi_password: document.getElementById("wifi_password").value,
+                mqtt_server: "m6e105d6.ala.eu-central-1.emqxsl.com",
+                mqtt_port: "8883",
+                mqtt_user: "waterUserName",
+                mqtt_password: "usr_26f924f3d92",
+                device_id: "hP3t8DuEs2"
+            };
+
+            const response = await fetch("/saveConfig", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(config)
+            });
+
+            if (response.ok) {
+                alert("Config saved successfully!");
+            } else {
+                alert("Failed to save config!");
+            }
+        }
+    </script>
+</body>
+</html>
