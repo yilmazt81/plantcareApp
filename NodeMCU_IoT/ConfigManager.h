@@ -34,6 +34,8 @@ bool loadConfig() {
   configFile.readBytes(buf.get(), size);
 
   StaticJsonDocument<1024> doc;
+
+  
   DeserializationError error = deserializeJson(doc, buf.get());
   if (error) {
     Serial.println("JSON parse hatası.");
@@ -58,7 +60,7 @@ bool saveConfig() {
   doc["wifi_password"] = config.wifi_password;
   doc["mqtt_server"] = config.mqtt_server;
   doc["mqtt_port"] = config.mqtt_port;
-  doc["mqtt_user"] = config.mqtt_user;
+  doc["mqtt_use= config.mqtt_user;r"] 
   doc["mqtt_password"] = config.mqtt_password;
   doc["deviceid"] = config.deviceid;
 
