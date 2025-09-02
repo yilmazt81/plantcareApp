@@ -4,16 +4,21 @@
 struct PompSaveCommand { 
   bool pomp1Enable;
   bool pomp2Enable;
+  bool enableLocation;
 
   int Pomp1StartHour;
+  int Pomp1WorkingTime;
   int Pomp1StartMinute;  
   int Pomp2StartHour;  
   int Pomp2StartMinute;
+  int Pomp2WorkingTime;
 
   String  Pomp2RepeatType ;  
   String  Pomp1RepeatType;
   String  PompWork1WorkDays;
   String  PompWork2WorkDays;
+  String devicelatitude;
+  String devicelongitude;
   
   
 };
@@ -27,7 +32,7 @@ bool loadPompConfig() {
     return false;
   }
   if (!SPIFFS.exists("/deviceSetting.json")) {
-    Serial.println(" deviceSetting Config dosyası bulunamadı.");
+    //Serial.println(" deviceSetting Config dosyası bulunamadı.");
     return false;
   }
 
@@ -63,6 +68,17 @@ bool loadPompConfig() {
   pompconfig.PompWork1WorkDays = doc["PW1WD"].as<String>();
   pompconfig.PompWork2WorkDays = doc["PW2WD"].as<String>();
 
+
+
+
+  pompconfig.Pomp1WorkingTime = doc["P1WT"].as<int>();  
+  pompconfig.Pomp2WorkingTime = doc["P2WT"].as<int>();
+
+  pompconfig.devicelatitude = doc["DLat"].as<String>();
+  pompconfig.devicelongitude = doc["DLong"].as<String>();
+  pompconfig.enableLocation=doc["p1En"].as<bool>() | false;
+
+
   Serial.println("Config yüklendi.");
   return true;
 }
@@ -71,15 +87,7 @@ bool loadPompConfig() {
 
 bool savePompConfig(StaticJsonDocument<1024>  doc) {
  
- /* doc["pomp1Enable"] = pompconfig.pomp1Enable;
-  doc["pomp2Enable"] = pompconfig.pomp2Enable;
-  doc["Pomp1StartHour"] = pompconfig.Pomp1StartHour;
-  doc["Pomp1StartMinute"] = pompconfig.Pomp1StartMinute;
-  doc["Pomp2StartHour"] = pompconfig.Pomp2StartHour;
-  doc["Pomp2StartMinute"] = pompconfig.Pomp2StartMinute;
-  doc["Pomp2RepeatType"] = pompconfig.Pomp2RepeatType;
-  doc["Pomp1RepeatType"] = pompconfig.Pomp1RepeatType;
-*/
+ 
   File configFile = SPIFFS.open("/deviceSetting.json", "w");
   if (!configFile) {
     Serial.println("Config dosyası yazılamadı.");

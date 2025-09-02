@@ -3,382 +3,329 @@
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 #include <ArduinoOTA.h>
-#include <LittleFS.h>
-#include <DNSServer.h>
-#include <time.h>
+#include "ConfigManager.h"  
+#include "PompCommand.h"
 #include <ArduinoJson.h>
-#include <WiFiClientSecureBearSSL.h>   // ESP8266 için BearSSL
-// #include "ConfigManager.h"   // LittleFS uyumlu sürüm
+ 
+
+#define RESET_BUTTON_PIN D2 //D2(gpio4)d:\Personel\Project\plantcareApp\NodeMCU_IoT\sketch_aug1a\PompCommand.h
+
+#define RESET_LED_PING D1 // D1(gpio5)
+#define RESET_LED_PINR D4  // ya da #define LED_PIN 2
 
 
-// =================== Donanım ===================
-#define SOIL_SENSOR_PIN   A0
-#define RESET_BUTTON_PIN  D3
-const unsigned long resetHoldTime = 5000;  // 5 saniye
+#define WIFI_LED_PING D8 
+#define WIFI_LED_PINR D7
+
+
+#define Pomp_1 D5 
+
+#define fakeLed D6 
+
+
 unsigned long buttonPressStart = 0;
+unsigned long connectWifi=0;
+const unsigned long resetHoldTime = 5000;  // 5 second
+bool   relayOn            = false;
+unsigned long relayOffAt  = 0; // millis zaman damgası
+const bool RELAY_ACTIVE_LOW = true; // Röleniz aktif HIGH ise false yapın
 
-// =================== Ağ / Servisler ===================
 ESP8266WebServer server(80);
-const byte DNS_PORT = 53;
-DNSServer dnsServer;
 
-// TLS/MQTT
 WiFiClientSecure secureClient;
-PubSubClient mqttClient(secureClient);
-BearSSL::X509List* g_caCert = nullptr;   // CA zinciri burada tutulur
-
-// =================== Config Yapısı ===================
-struct Config {
-  String wifi_ssid;
-  String wifi_password;
-  String mqtt_server;
-  int    mqtt_port;
-  String mqtt_user;
-  String mqtt_password;
-  String device_id;
-};
-
-Config config;
-
-const char* MQTT_HOST = "m6e105d6.ala.eu-central-1.emqxsl.com";
-const uint16_t MQTT_PORT = 8883;
-const char* MQTT_USER = "waterUserName";
-const char* MQTT_PASS = "usr_26f924f3d92";
-const char* MQTT_CLIENT_ID = "hP3t8DuEs2"; // device_id
-
-// =================== İleri Bildirim/Debug ===================
-String wlStatusToString(wl_status_t s) {
-  switch (s) {
-    case WL_IDLE_STATUS:      return "IDLE";
-    case WL_NO_SSID_AVAIL:    return "NO_SSID_AVAIL";
-    case WL_SCAN_COMPLETED:   return "SCAN_COMPLETED";
-    case WL_CONNECTED:        return "CONNECTED";
-    case WL_CONNECT_FAILED:   return "CONNECT_FAILED";
-    case WL_CONNECTION_LOST:  return "CONNECTION_LOST";
-    case WL_DISCONNECTED:     return "DISCONNECTED";
-    default: return "UNKNOWN(" + String((int)s) + ")";
-  }
-}
-
-// =================== LittleFS: Config Yükle/Kaydet/Sıfırla ===================
-bool loadConfig() {
-  if (!LittleFS.begin()) {
-    Serial.println("LittleFS başlatılamadı.");
-    return false;
-  }
-  if (!LittleFS.exists("/config.json")) {
-    Serial.println("Config dosyası bulunamadı.");
-    return false;
-  }
-
-  File f = LittleFS.open("/config.json", "r");
-  if (!f) {
-    Serial.println("Config dosyası açılamadı.");
-    return false;
-  }
-  size_t size = f.size();
-  std::unique_ptr<char[]> buf(new char[size + 1]);
-  f.readBytes(buf.get(), size);
-  buf[size] = '\0';
-  f.close();
-
-  StaticJsonDocument<1024> doc;
-  auto err = deserializeJson(doc, buf.get());
-  if (err) {
-    Serial.print("JSON parse hatası: ");
-    Serial.println(err.c_str());
-    return false;
-  }
-
-  config.wifi_ssid     = doc["wifi_ssid"]     | "";
-  config.wifi_password = doc["wifi_password"] | "";
-
-
-  config.mqtt_server   = MQTT_HOST;
-  config.mqtt_port     = MQTT_PORT;
-  config.mqtt_user     = MQTT_USER;        // düzeltilmiş
-  config.mqtt_password = MQTT_PASS;
-  config.device_id     = MQTT_CLIENT_ID;
-
-  Serial.println("Config yüklendi (LittleFS).");
-  return true;
-}
-
-bool saveConfig() {
-  StaticJsonDocument<1024> doc;
-  doc["wifi_ssid"]     = config.wifi_ssid;
-  doc["wifi_password"] = config.wifi_password;
-  doc["mqtt_server"]   = config.mqtt_server;
-  doc["mqtt_port"]     = config.mqtt_port;
-  doc["mqtt_user"]     = config.mqtt_user;
-  doc["mqtt_password"] = config.mqtt_password;
-  doc["device_id"]     = config.device_id;
-
-  File f = LittleFS.open("/config.json", "w");
-  if (!f) {
-    Serial.println("Config dosyası yazılamadı.");
-    return false;
-  }
-  serializeJson(doc, f);
-  f.close();
-  Serial.println("Config kaydedildi (LittleFS).");
-  return true;
-}
-
-bool resetConfig() {
-  if (!LittleFS.begin()) {
-    Serial.println("LittleFS başlatılamadı.");
-    return false;
-  }
-  if (LittleFS.exists("/config.json")) {
-    LittleFS.remove("/config.json");
-    Serial.println("Config sıfırlandı (LittleFS).");
-    return true;
-  }
-  Serial.println("Config zaten yok (LittleFS).");
-  return false;
-}
-
-// =================== Web: /saveConfig ===================
+PubSubClient mqttClient(secureClient); 
+ 
+ 
 void handleConfigSave() {
   if (!server.hasArg("plain")) {
     server.send(400, "application/json", "{\"error\":\"body yok\"}");
     return;
   }
   StaticJsonDocument<1024> doc;
-  DeserializationError err = deserializeJson(doc, server.arg("plain"));
-  if (err) {
+  DeserializationError error = deserializeJson(doc, server.arg("plain"));
+  if (error) {
     server.send(400, "application/json", "{\"error\":\"json hatası\"}");
     return;
   }
 
-  config.wifi_ssid     = doc["wifi_ssid"].as<String>();
+  config.wifi_ssid = doc["wifi_ssid"].as<String>();
   config.wifi_password = doc["wifi_password"].as<String>();
-  // config.mqtt_server   = doc["mqtt_server"].as<String>();
-  // config.mqtt_port     = doc["mqtt_port"].as<int>();
-  // config.mqtt_user     = doc["mqtt_user"].as<String>();
-  // config.mqtt_password = doc["mqtt_password"].as<String>();
-  // config.device_id     = doc["device_id"].as<String>();
+  config.mqtt_server = doc["mqtt_server"].as<String>();
+  config.mqtt_port = doc["mqtt_port"];
+  config.mqtt_user = doc["mqtt_user"].as<String>();
+  config.mqtt_password = doc["mqtt_password"].as<String>();
+  config.deviceid = doc["deviceid"].as<String>();
 
   saveConfig();
-  server.send(200, "application/json", "{\"status\":\"saved\"}");
 
-  delay(1000);
-  ESP.restart();
+  server.send(200, "application/json", "{\"status\":\"ok\",\"restarting\":true}");
+  delay(2000);
+  ESP.restart(); 
+
 }
 
-// =================== WiFi ===================
-void startAP() {
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP("smartVase", "12345678");
-  IPAddress ip = WiFi.softAPIP();
-  Serial.printf("AP mode: SSID=smartVase, IP=%s\n", ip.toString().c_str());
+void startWebConfig() {
+  IPAddress apIP(192, 168, 4, 1);        // Cihazın IP adresi
+  IPAddress gateway(192, 168, 4, 1);     // Genellikle aynı IP
+  IPAddress subnet(255, 255, 255, 0);      // Alt ağ maskesi
 
-  // Captive portal DNS
-  dnsServer.start(DNS_PORT, "*", ip);
+
+  WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(apIP, gateway, subnet);
+    WiFi.softAP("smartVase", "12345678");
+  Serial.println("Config AP opening.");
+ // server.serveStatic("/", SPIFFS, "/index.html");
+  server.on("/save", HTTP_POST, handleConfigSave);
+  server.begin();
+  Serial.print("WiFi roter");
+  Serial.println(WiFi.softAPIP());
 }
 
 void connectWiFi() {
-  if (config.wifi_ssid.length() == 0) {
-    Serial.println("WiFi config yok, AP moduna geçiliyor.");
-    startAP();
+  WiFi.begin(config.wifi_ssid.c_str(), config.wifi_password.c_str());
+  Serial.print("WiFi connecting");
+
+   digitalWrite(WIFI_LED_PING,  LOW);
+   digitalWrite(WIFI_LED_PINR,  HIGH);
+
+  unsigned long timeout = millis();
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500); Serial.print(".");
+    if (millis() - timeout > 15000) break;
+  }
+
+  Serial.println("");
+  Serial.println("WiFi bağlı!");
+  Serial.print("IP adresi: ");
+
+  digitalWrite(WIFI_LED_PING, HIGH);
+  digitalWrite(WIFI_LED_PINR,  LOW);
+  connectWifi=1;
+
+  Serial.println(WiFi.localIP());  
+}
+
+ 
+void setRelay(bool on) {
+  relayOn = on;
+ 
+  if (RELAY_ACTIVE_LOW) {
+    digitalWrite(Pomp_1, on ? LOW : HIGH);
+  } else {
+    digitalWrite(Pomp_1, on ? HIGH : LOW);
+  }
+ 
+  
+}
+
+// Aç ve belirli süre sonra otomatik kapat
+void startRelayFor(unsigned long ms) {
+  setRelay(true);
+  relayOffAt = millis() + ms;
+}
+void connectMQTT() {
+
+
+  mqttClient.setServer(config.mqtt_server.c_str(), config.mqtt_port);
+  mqttClient.setCallback(callback); 
+  while (!mqttClient.connected()) {
+ 
+    Serial.print("MQTT broker connecting...");
+    Serial.print(" Device Id ");
+    Serial.print(config.deviceid.c_str());
+ 
+
+    if (mqttClient.connect(config.deviceid.c_str(), config.mqtt_user.c_str(), config.mqtt_password.c_str())) {
+      Serial.println("MQTT connected");
+      String commandSubscribe = String(config.deviceid)  + "/command";
+ 
+      mqttClient.subscribe(commandSubscribe.c_str());
+    } else {
+      Serial.print("cannot connect: ");
+      Serial.print(mqttClient.state());
+
+      Serial.print("  IP adresi: ");
+      Serial.println(WiFi.localIP());  
+
+      delay(5000);
+    }
+  }
+}
+ 
+
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Mesaj geldi [");
+  Serial.print(topic);
+  Serial.print("] ");
+ 
+  unsigned long relayStartTime = 0;
+  unsigned long relayDuration = 0;
+  bool relayActive = false;
+
+  String jsonStr;
+
+  // Payload'u stringe çevir
+  for (int i = 0; i < length; i++) {
+    jsonStr += (char)payload[i];
+  }
+  Serial.println(jsonStr);
+
+  StaticJsonDocument<1024> doc; // Bellek boyutu ayarı
+  DeserializationError error = deserializeJson(doc, jsonStr);
+
+  if (error) {
+    Serial.print("JSON parse hatası: ");
+    Serial.println(error.f_str());
     return;
   }
 
-  WiFi.mode(WIFI_STA);
-  WiFi.persistent(false);
-  WiFi.setAutoReconnect(true);
-  WiFi.begin("TYHomeE", "KNY3C9qwrkN4");
+  const char* command = doc["command"];
+ 
 
-  Serial.printf("Connecting to WiFi: %s\n", config.wifi_ssid.c_str());
-  wl_status_t r = (wl_status_t) WiFi.waitForConnectResult();
-  if (r == WL_CONNECTED) {
-    Serial.printf("Connected, IP: %s\n", WiFi.localIP().toString().c_str());
-  } else {
-    Serial.println("WiFi connect failed, AP moduna geçiliyor.");
-    startAP();
+  if (String(command) == "water") {
+
+    int value = doc["value"];
+    int time = doc["time"];  
+    Serial.printf("Komut: %s, Değer: %d, Süre: %d\n", command, value, time);
+    
+    if (value == 1)
+    {
+        Serial.println("Röle çalıştırılıyor...");
+        setRelay(true);
+
+        relayActive = true;
+        relayStartTime = millis();
+        relayDuration = (unsigned long)time * 1000; // ms’ye çevir
+        delay(relayDuration);
+      setRelay(false);
+       Serial.println("Röle Durduruluyor...");
+    }else
+    {
+        Serial.println("Röle Durduruluyor...");
+        setRelay(false);
+    }  
+    // digitalWrite(RELAY_PIN, HIGH);
   }
+
+  if (String(command) == "SaveSetting") {
+      savePompConfig(doc);
+  } 
+
+   
+ 
+  
 }
 
-// =================== NTP (TLS için zorunlu) ===================
-void setupTime() {
-  if (WiFi.status() != WL_CONNECTED) return;
-  configTime(3 * 3600, 0, "pool.ntp.org", "time.google.com"); // GMT+3
-  Serial.print("NTP bekleniyor");
-  time_t now = time(nullptr);
-  while (now < 1700000000) { // ~2023+
-    delay(200);
-    Serial.print(".");
-    now = time(nullptr);
-  }
-  Serial.println("\nSaat ayarlandı.");
+void setupOTA() {
+  ArduinoOTA.setHostname(config.deviceid.c_str());
+  ArduinoOTA.begin();
+  Serial.println("OTA ready.");
 }
 
-
-// =================== TLS / CA ===================
-bool setupTLS() {
-  if (!LittleFS.begin()) {
-    Serial.println("LittleFS mount başarısız (TLS).");
-    return false;
-  }
-  File f = LittleFS.open("/emqx_ca.pem", "r");
-  if (!f) {
-    Serial.println("CA dosyası yok: /emqx_ca.pem");
-    return false;
-  }
-  String pem = f.readString();
-  f.close();
-
-  if (g_caCert) { delete g_caCert; g_caCert = nullptr; }
-  g_caCert = new BearSSL::X509List(pem.c_str());
-
-  secureClient.setTrustAnchors(g_caCert);
-  secureClient.setBufferSizes(1024, 1024);  // MQTT için dengeli
-  // secureClient.setInsecure(); // *** SADECE TEŞHİS İÇİN. ÜRETİMDE KULLANMA. ***
-  return true;
-}
-
-// =================== MQTT ===================
-bool connectMQTT() {
-  if (mqttClient.connected()) return true;
-
-  Serial.printf("Connecting to MQTT (host=%s, port=%d)...\n",
-                config.mqtt_server.c_str(), config.mqtt_port);
-
-  bool ok = mqttClient.connect(
-              config.device_id.c_str(),
-              config.mqtt_user.c_str(),
-              config.mqtt_password.c_str());
-
-  int st = mqttClient.state();
-  if (ok) {
-    Serial.println("MQTT connected!");
-    return true;
-  } else {
-    Serial.printf("MQTT failed, rc=%d\n", st); // -2 => TCP/TLS connect fail
-    return false;
-  }
-}
-
-void sendSensorData() {
-  int soilValue = analogRead(SOIL_SENSOR_PIN);
-  String topic = "devices/" + config.device_id + "/soil";
-  String payload = "{\"soil\":" + String(soilValue) + "}";
-
-  if (mqttClient.publish(topic.c_str(), payload.c_str())) {
-    Serial.println("Data sent: " + payload);
-  } else {
-    Serial.println("MQTT publish failed");
-  }
-}
-
-// =================== Setup ===================
 void setup() {
-  Serial.begin(115200);
-  Serial.println();
-  Serial.println("Smart Vase starting...");
 
-  pinMode(RESET_BUTTON_PIN, INPUT_PULLUP);
+  Serial.begin(115200); 
+  
+  pinMode(fakeLed, OUTPUT);//silinecek
+  digitalWrite(fakeLed,  HIGH); //silinecek
 
-  if (!LittleFS.begin()) {
-    Serial.println("LittleFS mount failed!");
-    // devam: AP moduna düşebilmek için yine de ilerleyeceğiz
-  } else {
-    Serial.println("LittleFS mounted.");
-  }
+  pinMode(Pomp_1, OUTPUT);
+  pinMode(RESET_BUTTON_PIN, INPUT); 
 
-  loadConfig();
-  connectWiFi();
 
-  if (WiFi.status() == WL_CONNECTED) {
-    setupTime();    // TLS için saat şart
-    if (!setupTLS()) {
-      Serial.println("TLS/CA kurulamadı! (Teşhis için geçici setInsecure() kullanılabilir)");
-    }
-  }
+  digitalWrite(Pomp_1,  LOW);  // Aktif düşük
 
-  // HTTP statik içerik + API
-  server.serveStatic("/", LittleFS, "/index.html");      // UI
-  server.serveStatic("/config.json", LittleFS, "/config.json"); // debug
-  server.on("/saveConfig", HTTP_POST, handleConfigSave);
 
-  // Android captive portal düzeltmeleri + fallback redirect
-  server.onNotFound([]() {
-    String hostHeader = server.hostHeader();
-    if (hostHeader.indexOf("connectivitycheck.gstatic.com") >= 0 ||
-        hostHeader.indexOf("clients3.google.com") >= 0) {
-      server.send(204, "text/plain", "");
+  pinMode(RESET_LED_PING, OUTPUT);
+  pinMode(RESET_LED_PINR, OUTPUT);
+
+  pinMode(WIFI_LED_PING, OUTPUT);
+  pinMode(WIFI_LED_PINR, OUTPUT);
+
+  digitalWrite(WIFI_LED_PING,  LOW);
+  digitalWrite(WIFI_LED_PINR,  LOW);
+
+  digitalWrite(RESET_LED_PING,  LOW);
+  digitalWrite(RESET_LED_PINR,  LOW);  // Aktif düşük
+
+ 
+
+  if (!loadConfig()) {
+    startWebConfig();
+    return;
+  }else {
+    connectWiFi();
+
+    secureClient.setInsecure();
+
+    if (WiFi.status() != WL_CONNECTED) {
+      startWebConfig();
       return;
     }
-    if (server.method() == HTTP_GET) {
-      server.sendHeader("Location", "/");
-      server.send(302, "text/plain", "");
-    } else {
-      server.send(404, "application/json", "{\"error\":\"not found\"}");
-    }
-  });
 
-  server.begin();
-  Serial.println("HTTP server started");
-
-  // MQTT ayarları
-//test edilecek port 
-    Serial.println(config.mqtt_port);
-  mqttClient.setServer(config.mqtt_server.c_str(), config.mqtt_port);
-  mqttClient.setKeepAlive(30);
-  mqttClient.setSocketTimeout(10);
-  mqttClient.setBufferSize(1024);
+      server.on("/health", HTTP_GET, []() {
+      server.send(200, "application/json", "{\"status\":\"alive\"}");
+    });
+    server.begin();
+ 
+    connectMQTT();
+    setupOTA();
+  } 
 }
 
-// =================== Loop ===================
 void loop() {
-  // Captive portal DNS ve web server
-  if (WiFi.getMode() & WIFI_AP) {
-    dnsServer.processNextRequest();
-  }
-  server.handleClient();
+ 
 
-  // MQTT non-blocking bağlanma & loop
-  if (WiFi.status() == WL_CONNECTED) {
-    if (!mqttClient.connected()) {
-      static unsigned long lastTry = 0;
-      if (millis() - lastTry > 3000) {
-        lastTry = millis();
-        connectMQTT();
+   //Serial.println("loop ");
+    ArduinoOTA.handle();
+
+    server.handleClient();
+
+    if (connectWifi==1)
+    {
+      if (!mqttClient.connected()) {
+          connectMQTT();
       }
-    } else {
       mqttClient.loop();
     }
-  }
 
-  // Reset butonu (5 sn)
-  if (digitalRead(RESET_BUTTON_PIN) == LOW) {
-    if (buttonPressStart == 0) {
-      buttonPressStart = millis();
-    } else if (millis() - buttonPressStart >= resetHoldTime) {
-      Serial.println("Reset butonuna uzun basıldı, ayarlar sıfırlanıyor...");
-      resetConfig();
-      ESP.restart();
-    }
-  } else {
-    buttonPressStart = 0;
-  }
+    /*
+    static unsigned long lastPublish = 0;
 
-  // 5 sn'de bir sensör publish (yalnızca MQTT bağlıyken)
-  static unsigned long lastSend = 0;
-  if (millis() - lastSend > 5000 && mqttClient.connected()) {
-    lastSend = millis();
-    sendSensorData();
-  }
+    //Press reset button
+  if (digitalRead(RESET_BUTTON_PIN) == HIGH) {
 
-  // Periyodik durum logu (non-blocking)
-  static unsigned long lastLog = 0;
-  if (millis() - lastLog > 10000) {
-    lastLog = millis();
-    Serial.printf("WiFi:%s(%d)  Mode:%s%s  MQTT:%d\n",
-      WiFi.SSID().c_str(), WiFi.status(),
-      (WiFi.getMode() & WIFI_STA) ? "STA" : "",
-      (WiFi.getMode() & WIFI_AP)  ? "+AP"  : "",
-      mqttClient.connected());
-  }
+        Serial.println("Pressed ");
+          
+        if (buttonPressStart == 0) {
+          buttonPressStart = millis();
+        }
+
+        digitalWrite(RESET_LED_PING, millis() % 500 < 250 ? LOW : HIGH);
+        digitalWrite(RESET_LED_PINR, millis() % 500 < 250 ? HIGH : LOW);  // Aktif düşük
+
+        if (millis() - buttonPressStart >= resetHoldTime) {
+
+          SPIFFS.begin();
+          SPIFFS.remove("/config.json");
+          SPIFFS.remove("/deviceSetting.json");          
+          SPIFFS.end();
+          Serial.println("The button was held for 5 seconds! Settings are resetting....");
+          digitalWrite(RESET_LED_PING,  LOW);
+          digitalWrite(RESET_LED_PINR,  LOW);  // Aktif düşük
+
+          delay(1000);
+          ESP.restart();
+
+        }
+
+    } else {
+        // If the button is released, the counter is reset.
+        buttonPressStart = 0;
+    } 
+    */
+   // loadPompConfig();
+
+     
 }

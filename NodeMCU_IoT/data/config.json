@@ -1,9 +1,0 @@
-{
-  "wifi_ssid": "FiberHGW_ZTQR27_2.4GHz",
-  "wifi_password": "AN9YkfdFCRH",
-  "mqtt_server": "m6e105d6.ala.eu-central-1.emqxsl.com",
-  "mqtt_port": 8883,
-  "mqtt_user": "waterUserName",
-  "mqtt_password": "usr_26f924f3d92",
-  "deviceid": "hP3t8DuEs2"
-}
