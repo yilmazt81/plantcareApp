@@ -7,6 +7,9 @@ struct PompSaveCommand {
   int PompStartMinute;  
   String  PompRepeatType ;  
   String  PompWorkWorkDays;
+  
+  int PompWorkingTime;
+  
 };
 
 
@@ -45,23 +48,16 @@ bool loadPompConfig() {
   pompconfig.PompRepeatType = doc["PRT"].as<String>();
   pompconfig.PompWorkWorkDays = doc["PWWD"].as<String>();
 
+  pompconfig.PompWorkingTime = doc["PWT"].as<int>();  
+
   Serial.println("Config yüklendi.");
   return true;
 }
-
-
+ 
 
 bool savePompConfig(StaticJsonDocument<1024>  doc) {
  
- /* doc["pomp1Enable"] = pompconfig.pomp1Enable;
-  doc["pomp2Enable"] = pompconfig.pomp2Enable;
-  doc["Pomp1StartHour"] = pompconfig.Pomp1StartHour;
-  doc["Pomp1StartMinute"] = pompconfig.Pomp1StartMinute;
-  doc["Pomp2StartHour"] = pompconfig.Pomp2StartHour;
-  doc["Pomp2StartMinute"] = pompconfig.Pomp2StartMinute;
-  doc["Pomp2RepeatType"] = pompconfig.Pomp2RepeatType;
-  doc["Pomp1RepeatType"] = pompconfig.Pomp1RepeatType;
-*/
+ 
   File configFile = SPIFFS.open("/deviceSetting.json", "w");
   if (!configFile) {
     Serial.println("Config dosyası yazılamadı.");

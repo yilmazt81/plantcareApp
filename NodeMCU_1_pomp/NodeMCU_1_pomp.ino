@@ -177,65 +177,6 @@ void connectMQTT() {
  
 
 
-void callback(char* topic, byte* payload, unsigned int length) {
-
- 
-  Serial.print("Mesaj geldi [");
-  Serial.print(topic);
-  Serial.print("] ");
- 
-  unsigned long relayStartTime = 0;
-  unsigned long relayDuration = 0;
-  bool relayActive = false;
-
-  String jsonStr;
-
-  // Payload'u stringe çevir
-  for (int i = 0; i < length; i++) {
-    jsonStr += (char)payload[i];
-  }
-  Serial.println(jsonStr);
-  if (jsonStr=="")
-     return;
-  StaticJsonDocument<1024> doc; // Bellek boyutu ayarı
-  DeserializationError error = deserializeJson(doc, jsonStr);
-
-  if (error) {
-    Serial.print("JSON parse hatası callback : ");
-    Serial.println(error.f_str());
-    Serial.println(error.f_str());
-    return;
-  }
-
-  const char* command = doc["command"];
-  
-  if (String(command) == "water") {
-
-    int value = doc["value"];
-    int time = doc["time"];
-    int pomp = doc["pomp"];
-   
-        Serial.println("Röle çalıştırılıyor...");        
-        OpenPomp();       
-        relayActive = true;
-        relayStartTime = millis();
-        relayDuration = (unsigned long)time * 1000; // ms’ye çevir
-        delay(relayDuration); 
-        ClosePomp();
-        Serial.println("Röle Durduruluyor...");
-    }else
-    {
-       // Serial.println("Röle Durduruluyor...");
-         OpenPomp();
-    }  
-    // digitalWrite(RELAY_PIN, HIGH);
-  
-
-  if (String(command) == "SaveSetting") {
-      savePompConfig(doc);
-  } 
- 
-}
 
 void setupOTA() {
   ArduinoOTA.setHostname(config.deviceid.c_str());
@@ -407,6 +348,77 @@ bool contains(int arr[], int size, int value) {
     }
   }
   return false; // yok
+}
+
+
+void callback(char* topic, byte* payload, unsigned int length) {
+
+ 
+  Serial.print("Mesaj geldi [");
+  Serial.print(topic);
+  Serial.print("] ");
+
+  time_t now = time(nullptr);
+  struct tm* timeinfo = localtime(&now);
+
+  
+
+  int minute = timeinfo->tm_min;
+ 
+  unsigned long relayStartTime = 0;
+  unsigned long relayDuration = 0;
+  bool relayActive = false;
+
+  String jsonStr;
+
+  // Payload'u stringe çevir
+  for (int i = 0; i < length; i++) {
+    jsonStr += (char)payload[i];
+  }
+  Serial.println(jsonStr);
+  if (jsonStr=="")
+     return;
+  StaticJsonDocument<1024> doc; // Bellek boyutu ayarı
+  DeserializationError error = deserializeJson(doc, jsonStr);
+
+  if (error) {
+    Serial.print("JSON parse hatası callback : ");
+    Serial.println(error.f_str());
+    Serial.println(error.f_str());
+    return;
+  }
+
+  const char* command = doc["command"];
+  
+  if (String(command) == "water") {
+
+    int value = doc["value"];
+    int time = doc["time"];
+    int pomp = doc["pomp"];
+    if (value==1)
+        Serial.println("Röle çalıştırılıyor...");    
+          lastRunMinute= minute;    
+        OpenPomp();       
+        relayActive = true;
+        relayStartTime = millis();
+        relayDuration = (unsigned long)time * 1000; // ms’ye çevir
+        delay(relayDuration); 
+        ClosePomp();
+        Serial.println("Röle Durduruluyor...");
+    }else
+    {
+         if (lastRunMinute != minute) 
+          lastRunMinute = -1;
+       // Serial.println("Röle Durduruluyor...");
+         ClosePomp();
+    }  
+    // digitalWrite(RELAY_PIN, HIGH);
+  
+
+  if (String(command) == "SaveSetting") {
+      savePompConfig(doc);
+  } 
+ 
 }
 
 
