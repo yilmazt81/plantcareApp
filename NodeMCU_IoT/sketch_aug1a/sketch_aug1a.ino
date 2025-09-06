@@ -8,16 +8,17 @@
 #include <ArduinoJson.h> 
 #include <Firebase_ESP_Client.h>
 
-#define RESET_BUTTON_PIN D2  
+#define RESET_BUTTON_PIN  D7 
 
  
 #define WIFI_LED_PING  D4  
 #define WIFI_LED_PINR  D3
 
-#define Pomp_PIN D7 
- 
-#define API_KEY "AIzaSyBhNSuaB7v1H5WI7AKJeTxK_u9Nhc8osFA"
-#define DATABASE_URL "https://plantcare-17800-default-rtdb.firebaseio.com"  
+#define Pomp_PIN D2  
+
+#define SOIL_PIN A0
+
+  
 
 
 unsigned long buttonPressStart = 0;
@@ -228,9 +229,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
         //AddPompTimeFireBase(time);
         OpenPomp();       
         relayActive = true;
-        relayStartTime = millis();
-        relayDuration = (unsigned long)time * 1000; // ms’ye çevir
-        delay(relayDuration); 
+        WaitAndKeepAliveMqtt(time);       
         Serial.println("Röle Durduruluyor...");
         ClosePomp();
        
@@ -244,6 +243,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   if (String(command) == "SaveSetting") {
       savePompConfig(doc);
+      showAlertLeds();
   } 
  
   
@@ -262,6 +262,7 @@ void setup() {
 
   pinMode(Pomp_PIN, OUTPUT);
   pinMode(RESET_BUTTON_PIN, INPUT); 
+ // pinMode(SOIL_PIN,INPUT);
 
 
   digitalWrite(Pomp_PIN,  LOW);  // Aktif düşük
@@ -299,27 +300,39 @@ void setup() {
     setupOTA();
 
     setupTime();
-
-    /*
-    firebaseconfig.api_key = API_KEY;
-    firebaseconfig.database_url = DATABASE_URL;
-    
-    auth.user.email = "turk.yilmazt81@gmail.com";
-    auth.user.password = "3664871";
-
-
-    Firebase.begin(&firebaseconfig, &auth);
-    Firebase.reconnectWiFi(true);
-
-    */
+  
   } 
+}
+
+
+void readSoilSensor(){
+   int dry = 100;
+   int wet = 350;
+   int sensorValue = analogRead(SOIL_PIN);
+  //Serial.println("NTP bekleniyor "+String(sensorValue));
+ // Yüzdeye çevir
+  int percentH = map(sensorValue, wet, dry, 100, 0);
+  if (percentH < 0) percentH = 0;
+  if (percentH > 100) percentH = 100;
+
+   StaticJsonDocument<200> doc; 
+   doc["soil_moisture"] =String(percentH);
+
+  char buffer[128];
+  serializeJson(doc, buffer);
+
+   String  pub_topic=String(config.deviceid) + "/sensorData";
+
+
+   //String message="pompstatus|"+String(1)+"|"+String(1); ; 
+   PublishMessage(pub_topic,buffer);
 }
 
 void setupTime() {
   if (WiFi.status() != WL_CONNECTED) 
     return;
   configTime(3 * 3600, 0, "pool.ntp.org", "time.google.com"); // GMT+3
-  Serial.print("NTP bekleniyor");
+ 
   time_t now = time(nullptr);
   while (now < 1700000000) { // ~2023+
     delay(200);
@@ -332,10 +345,10 @@ void setupTime() {
 
 
 void loop() {
- 
+  /*
   Serial.print("Free Heap before push: ");
   Serial.println(ESP.getFreeHeap());
-
+  */
     ArduinoOTA.handle();
 
     server.handleClient();
@@ -369,12 +382,7 @@ void loop() {
           SPIFFS.end();
           Serial.println("The button was held for 5 seconds! Settings are resetting....");
         
-          for (int i = 0; i < 10; i++) {
-            digitalWrite(WIFI_LED_PINR, HIGH);  // LED yan
-            delay(200);
-            digitalWrite(WIFI_LED_PINR, LOW);   // LED sön
-            delay(200);
-          }
+          showAlertLeds();
 
           digitalWrite(WIFI_LED_PINR,  LOW);
           digitalWrite(WIFI_LED_PING,  LOW);  // Aktif düşük
@@ -394,10 +402,33 @@ void loop() {
       CheckDateTimeForWork();
     }  
     
+
+    readSoilSensor();
     delay(2000);
 
      
 }
+
+void showAlertLeds(){
+    for (int i = 0; i < 10; i++) {
+        digitalWrite(WIFI_LED_PINR, HIGH);  // LED yan
+        delay(200);
+        digitalWrite(WIFI_LED_PINR, LOW);   // LED sön
+        delay(200);
+    }
+}
+
+void WaitAndKeepAliveMqtt(int second){
+    for (int i = 0; i < second; i++) { 
+        int remain=(second-i);
+        String  pub_topic=String(config.deviceid) + "/status";
+        String message="pompstatus|"+String(1)+"|"+String(1)+"|"+String(remain); 
+        PublishMessage(pub_topic,message);
+        //mqttClient.loop();
+        delay(1000); 
+    }
+}
+
 String getDateTime() {
   struct tm timeinfo;
   if (!getLocalTime(&timeinfo)) {
@@ -408,42 +439,22 @@ String getDateTime() {
   return String(buffer);
 }
 
- void AddPompTimeFireBase(int worktime){
  
-  /*
-
-  FirebaseJson json;
-  json.set("deviceid", config.deviceid.c_str()); 
-  json.set("time", worktime);
-  json.set("workTime",getDateTime());
-
-  // JSON'u push et (benzersiz key ile ekler)
- if (Firebase.RTDB.pushJSON(&fbdo, "/pompjob", &json)) {
-    Serial.print("Yeni JSON kaydi eklendi, key: ");
-    Serial.println(fbdo.pushName());
-  } else {
-    Serial.print("Hata: ");
-    Serial.println(fbdo.errorReason());
-  } 
-  
-  
-  */
-  
-}
-
 void PublishMessage(String pub_topic,String message){
-   mqttClient.publish(pub_topic.c_str(),message.c_str(), false);
-  mqttClient.loop();
+  if (!mqttClient.publish(pub_topic.c_str(),message.c_str(), false)){
+     
+    Serial.println("Publish başarısız!");
+  
+  }
+   mqttClient.loop();
 }
 
 void  OpenPomp() {
  
    
-  digitalWrite(Pomp_PIN,HIGH);
-     
+  digitalWrite(Pomp_PIN,HIGH);     
   String  pub_topic=String(config.deviceid) + "/status";
-  String message="pompstatus|"+String(1)+"|1"; 
-
+  String message="pompstatus|"+String(1)+"|"+String(1); ; 
   PublishMessage(pub_topic,message);
 } 
 
@@ -453,23 +464,20 @@ void  ClosePomp() {
   digitalWrite(Pomp_PIN,LOW);
      
   String  pub_topic=String(config.deviceid) + "/status";
-  String message="pompstatus|"+String(1)+"|0"; 
+  String message="pompstatus|"+String(1)+"|"+String(0); 
 
   PublishMessage(pub_topic,message);
  
 } 
 
-
-
-
+ 
  
 void CheckDateTimeForWork() {
   time_t now = time(nullptr);
   struct tm* timeinfo = localtime(&now);
 
   
-  unsigned long relayStartTime = 0;
-  unsigned long relayDuration = 0;
+  unsigned long relayStartTime = 0; 
   bool relayActive = false;
 
   if (!timeinfo) {
@@ -483,37 +491,74 @@ void CheckDateTimeForWork() {
   int day    = timeinfo->tm_wday; // 0=Pazar ... 6=Cumartesi
  
   if (pompconfig.pompEnable) {
-    Serial.println("pomp1Enable   ");
-    int count;
-    int* days = parseDaysList(pompconfig.PompWorkWorkDays, count);
+    
+  if (pompconfig.PompRepeatType=="daily")
+  {
 
-    int idx = day;
+      bool timeOk = (pompconfig.PompStartHour == hour &&
+                    pompconfig.PompStartMinute == minute);
+    
+      // Aynı dakikada bir kez tetikle
+      if (timeOk && lastRunMinute!=minute ) {
+        lastRunMinute= minute;
+      // AddPompTimeFireBase(pompconfig.PompWorkingTime);
+        OpenPomp(); 
 
-    bool dayOk =contains( days,count,day);
-    bool timeOk = (pompconfig.PompStartHour == hour &&
-                   pompconfig.PompStartMinute == minute);
-  
-    // Aynı dakikada bir kez tetikle
-    if (dayOk && timeOk && lastRunMinute!=minute ) {
-      lastRunMinute= minute;
-     // AddPompTimeFireBase(pompconfig.PompWorkingTime);
-      OpenPomp();       
-      relayActive = true;
-      relayStartTime = millis();
-      relayDuration = (unsigned long)pompconfig.PompWorkingTime * 1000; // ms’ye çevir
-      delay(relayDuration); 
-      ClosePomp();
+        WaitAndKeepAliveMqtt(pompconfig.PompWorkingTime) ;
+        relayActive = true;
+       /**relayStartTime = millis();
+        relayDuration = (unsigned long)pompconfig.PompWorkingTime * 1000; // ms’ye çevir
+        delay(relayDuration); 
+        */
+        ClosePomp();
 
 
-    } else if (!timeOk) {
-      // dakika değiştiyse resetle ki gelecek dakikada tekrar tetiklenebilsin
-      if (lastRunMinute != minute) 
-          lastRunMinute = -1;
-      // Serial.println("Not Time   Pomp 1");
-    }
+      } else if (!timeOk) {
+        // dakika değiştiyse resetle ki gelecek dakikada tekrar tetiklenebilsin
+        if (lastRunMinute != minute) 
+            lastRunMinute = -1;
+        // Serial.println("Not Time   Pomp 1");
+      }
+
+  }
+
+ if (pompconfig.PompRepeatType=="weekly")
+ {
+
+ 
+      int count;
+      int* days = parseDaysList(pompconfig.PompWorkWorkDays, count);
+
+      int idx = day;
+
+      bool dayOk =contains( days,count,day);
+      bool timeOk = (pompconfig.PompStartHour == hour &&
+                    pompconfig.PompStartMinute == minute);
+    
+      // Aynı dakikada bir kez tetikle
+      if (dayOk && timeOk && lastRunMinute!=minute ) {
+        lastRunMinute= minute;
+      // AddPompTimeFireBase(pompconfig.PompWorkingTime);
+        OpenPomp();       
+        relayActive = true;
+        WaitAndKeepAliveMqtt(pompconfig.PompWorkingTime) ;
+       /* relayStartTime = millis();
+        relayDuration = (unsigned long)pompconfig.PompWorkingTime * 1000; // ms’ye çevir
+        delay(relayDuration); 
+        */
+        ClosePomp();
+
+
+      } else if (!timeOk) {
+        // dakika değiştiyse resetle ki gelecek dakikada tekrar tetiklenebilsin
+        if (lastRunMinute != minute) 
+            lastRunMinute = -1;
+        // Serial.println("Not Time   Pomp 1");
+      }
+
   }
  
-
+}
   Serial.printf("%02d/%02d/%04d %02d:%02d:%02d - %s\n",
                 timeinfo->tm_mday,
                 timeinfo->tm_mon + 1,

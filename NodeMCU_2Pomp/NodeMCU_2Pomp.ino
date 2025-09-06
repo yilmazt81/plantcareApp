@@ -35,24 +35,18 @@ const int   HTTPS_PORT = 443;
 #define Pomp_2 D1
  
 
- struct PumpState {
-  bool running = false;
-  int number=0;
-  unsigned long startMs = 0;
-  unsigned long durationMs = 0;
-  int lastRunMinute = -1;  // Aynı dakikada tekrar tetiklemeyi engelle
-};
-
-
-void startPump(PumpState& p, unsigned long durationMs, const char* tag);
-void handlePump(PumpState& p, const char* tag);
- PumpState pump1, pump2;
+   
 
 unsigned long buttonPressStart = 0;
 unsigned long connectWifi=0;
 const unsigned long resetHoldTime = 5000;  // 5 second
 bool   relayOn            = false;
 unsigned long relayOffAt  = 0; // millis zaman damgası
+long pom1LastWorkMinute=0;
+long pom2LastWorkMinute=0;
+bool relay1Active=false;
+bool relay2Active =false;
+
  
 
 ESP8266WebServer server(80);
@@ -215,6 +209,7 @@ void connectMQTT() {
     mqttClient.setKeepAlive(30);        // varsayılan 15 – 30 daha güvenli
     mqttClient.setSocketTimeout(15);    // ağ yavaşsa artır
     mqttClient.setBufferSize(1024);  
+ 
     if (mqttClient.connect(config.deviceid.c_str(), config.mqtt_user.c_str(), config.mqtt_password.c_str())) {
       Serial.println("MQTT connected");
       String commandSubscribe = String(config.deviceid)  + "/command";
@@ -243,6 +238,19 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Mesaj geldi [");
   Serial.print(topic);
   Serial.print("] ");
+
+  
+  time_t now = time(nullptr);
+  struct tm* timeinfo = localtime(&now);
+ 
+
+  if (!timeinfo) {
+    Serial.println("Zaman bilgisi alinamadi");
+    return;
+  }
+ 
+  int minute = timeinfo->tm_min;
+
  
   unsigned long relayStartTime = 0;
   unsigned long relayDuration = 0;
@@ -276,32 +284,56 @@ void callback(char* topic, byte* payload, unsigned int length) {
     int pomp = doc["pomp"];
     Serial.printf("Komut: %s, Değer: %d, Süre: %d\n Pomp: %d\n", command, value, time,pomp);
     
-    PumpState& target = (pomp == 2 ? pump2 : pump1);
+ 
        
     if (value == 1)
     {
-        Serial.println("Röle çalıştırılıyor...");
-        const char* label = (pomp == 2 ? "Pomp 2" : "Pomp 1");
-        target.number = pomp;
-        startPump(target, (unsigned long)time * 1000UL, label);
-       
-        relayActive = true;
-        relayStartTime = millis();
-        relayDuration = (unsigned long)time * 1000; // ms’ye çevir
-        delay(relayDuration); 
-        handlePump(target, label);
-        Serial.println("Röle Durduruluyor...");
+        if (pomp==1)
+        {
+         if (pom1LastWorkMinute==minute)
+            {
+              return;
+            }
+            Serial.println("Röle çalıştırılıyor...");   
+            pom1LastWorkMinute=minute;     
+            //AddPompTimeFireBase(time);
+            OpenPomp(pomp);       
+            relayActive = true;
+            WaitAndKeepAliveMqtt(time,pomp);       
+            Serial.println("Röle Durduruluyor...");
+            ClosePomp(pomp);
+
+        }
+        if (pomp==2)
+        {
+            Serial.println("Röle çalıştırılıyor...");   
+            pom2LastWorkMinute=minute;     
+            //AddPompTimeFireBase(time);
+            OpenPomp(pomp);       
+            relayActive = true;
+            WaitAndKeepAliveMqtt(time,pomp);       
+            Serial.println("Röle Durduruluyor...");
+            ClosePomp(pomp);
+        }
     }else
     {
        // Serial.println("Röle Durduruluyor...");
         OpenClosePomp(false, pomp);
-        target.running = false;
+        if (pomp==2){
+            pom2LastWorkMinute=-1;
+        }
+        if (pomp==1){
+          pom1LastWorkMinute=-1;
+        
+        }
+        //target.running = false;
     }  
     // digitalWrite(RELAY_PIN, HIGH);
   }
 
   if (String(command) == "SaveSetting") {
       savePompConfig(doc);
+      showAlertLeds();
   } 
  
 }
@@ -454,6 +486,16 @@ StaticJsonDocument<32 * 1024> doc; // Open-Meteo JSON'u büyük olabilir
 }
  
 
+ void showAlertLeds(){
+    for (int i = 0; i < 10; i++) {
+        digitalWrite(WIFI_LED_PINR, HIGH);  // LED yan
+        delay(200);
+        digitalWrite(WIFI_LED_PINR, LOW);   // LED sön
+        delay(200);
+    }
+}
+
+
  
 void loop() {
  
@@ -513,7 +555,7 @@ void loop() {
  
      
     if (loadPompConfig()){
-      //  bool r =Getforecast();
+     //  bool r =Getforecast();
       CheckDateTimeForWork();
     }  
     
@@ -557,33 +599,9 @@ int* parseDaysList(const String& s, int& count) {
 
  
 
+ 
 
- void handlePump(PumpState& p, const char* tag) {
-  if (p.running) {
-    if (millis() - p.startMs >= p.durationMs) {
-      p.running = false;
-      // burada röleyi KAPAT
-      // digitalWrite(RELAY_PIN, LOW);
-      OpenClosePomp(false,p.number); 
-      Serial.printf("%s tamamlandi\n", tag);
-    }
-  }
-}
-
-
-
-void startPump(PumpState& p, unsigned long durationMs, const char* tag) {
-  if (!p.running) {
-    p.running = true;
-    p.startMs = millis();
-    p.durationMs = durationMs;
-    Serial.printf("Run %s\n", tag);
-
-    OpenClosePomp(true,p.number);
-    // burada röleyi AÇ
-    // digitalWrite(RELAY_PIN, HIGH);
-  }
-}
+ 
 
 bool contains(int arr[], int size, int value) {
   for (int i = 0; i < size; i++) {
@@ -594,6 +612,63 @@ bool contains(int arr[], int size, int value) {
   return false; // yok
 }
 
+
+void  OpenPomp(int pompNumber) {
+ 
+   if (pompNumber==1)
+   {
+      digitalWrite(Pomp_1,HIGH);   
+   }else
+   {
+      digitalWrite(Pomp_2,HIGH);   
+   }
+    
+  String  pub_topic=String(config.deviceid) + "/status";
+  String message="pompstatus|"+String(pompNumber)+"|"+String(1); ; 
+  PublishMessage(pub_topic,message);
+} 
+
+
+void PublishMessage(String pub_topic,String message){
+  if (!mqttClient.publish(pub_topic.c_str(),message.c_str(), false)){
+     
+    Serial.println("Publish başarısız!");
+  
+  }
+   mqttClient.loop();
+}
+
+
+
+void  ClosePomp(int pompNumber) {
+ 
+   
+   if (pompNumber==1)
+   {
+      digitalWrite(Pomp_1,LOW);   
+   }else
+   {
+      digitalWrite(Pomp_2,LOW);   
+   } 
+     
+  String  pub_topic=String(config.deviceid) + "/status";
+  String message="pompstatus|"+String(pompNumber)+"|"+String(0); 
+
+  PublishMessage(pub_topic,message);
+ 
+} 
+
+
+void WaitAndKeepAliveMqtt(int second,int pompNumber){
+    for (int i = 0; i < second; i++) { 
+        int remain=(second-i);
+        String  pub_topic=String(config.deviceid) + "/status";
+        String message="pompstatus|"+String(pompNumber)+"|"+String(1)+"|"+String(remain); 
+        PublishMessage(pub_topic,message);
+        //mqttClient.loop();
+        delay(1000); 
+    }
+}
 
 void CheckDateTimeForWork() {
   time_t now = time(nullptr);
@@ -611,68 +686,139 @@ void CheckDateTimeForWork() {
 
   
   // --- POMP 1 ---
-  if (pompconfig.pomp1Enable) {
-     Serial.println("pomp1Enable   ");
-    int count;
-    int* days = parseDaysList(pompconfig.PompWork1WorkDays, count);
+  if (pompconfig.pomp1Enable) { 
 
-    // Eğer masken Pazartesi ile başlıyorsa şu satırı kullan:
-    // int w = (day + 6) % 7;
-    // else doğrudan day kullan:
-    int idx = day;
+    if (pompconfig.Pomp1RepeatType=="daily")
+    {
 
-    bool dayOk =contains( days,count,day);
-    bool timeOk = (pompconfig.Pomp1StartHour == hour &&
-                   pompconfig.Pomp1StartMinute == minute);
-    // Serial.println("timeOk   ");
-      //Serial.println(timeOk);
-
-        //Serial.println("dayOk   ");
-     // Serial.println(dayOk);
-
-    // Aynı dakikada bir kez tetikle
-    if (dayOk && timeOk && pump1.lastRunMinute!=minute ) {
-      pump1.lastRunMinute = minute;
-      pump1.number=1;
-      
-      startPump(pump1, (unsigned long)pompconfig.Pomp1WorkingTime * 1000UL, "Pomp 1");
+        // Eğer masken Pazartesi ile başlıyorsa şu satırı kullan:
+        // int w = (day + 6) % 7;
+        // else doğrudan day kullan:
+        int idx = day;
+  
+        bool timeOk = (pompconfig.Pomp1StartHour == hour &&
+                      pompconfig.Pomp1StartMinute == minute);
     
+        if (timeOk && pom1LastWorkMinute!=minute ) {
+          pom1LastWorkMinute = minute;
         
-      long relayDuration = (unsigned long)pompconfig.Pomp1WorkingTime * 1000; // ms’ye çevir
-      delay(relayDuration); 
-      handlePump(pump1, "Pomp 1");
+          
+          OpenPomp(1)  ;
+            
+          relay1Active = true;
+          WaitAndKeepAliveMqtt(pompconfig.Pomp1WorkingTime,1) ;
+          
+          ClosePomp(1);
 
-    } else if (!timeOk) {
-      // dakika değiştiyse resetle ki gelecek dakikada tekrar tetiklenebilsin
-      if (pump1.lastRunMinute != minute) pump1.lastRunMinute = -1;
-      // Serial.println("Not Time   Pomp 1");
+        } else if (!timeOk) {
+          // dakika değiştiyse resetle ki gelecek dakikada tekrar tetiklenebilsin
+          if (pom1LastWorkMinute != minute) 
+              pom1LastWorkMinute = -1;
+          // Serial.println("Not Time   Pomp 1");
+        }
+
     }
+    if (pompconfig.Pomp1RepeatType=="weekly")
+      {
+        int count;
+        int* days = parseDaysList(pompconfig.PompWork1WorkDays, count);
+
+        // Eğer masken Pazartesi ile başlıyorsa şu satırı kullan:
+        // int w = (day + 6) % 7;
+        // else doğrudan day kullan:
+        int idx = day;
+
+        bool dayOk =contains( days,count,day);
+        bool timeOk = (pompconfig.Pomp1StartHour == hour &&
+                      pompconfig.Pomp1StartMinute == minute);
+    
+        if (dayOk && timeOk && pom1LastWorkMinute!=minute ) {
+          pom1LastWorkMinute = minute;
+        
+          
+          OpenPomp(1)  ;
+            
+          relay1Active = true;
+          WaitAndKeepAliveMqtt(pompconfig.Pomp1WorkingTime,1) ;
+          
+          ClosePomp(1);
+
+        } else if (!timeOk) {
+          // dakika değiştiyse resetle ki gelecek dakikada tekrar tetiklenebilsin
+          if (pom1LastWorkMinute != minute) 
+              pom1LastWorkMinute = -1;
+          // Serial.println("Not Time   Pomp 1");
+        }
+
+      } 
   }
 
   // --- POMP 2 ---
   if (pompconfig.pomp2Enable) {
-    int count;
-    int* days = parseDaysList(pompconfig.PompWork2WorkDays, count);
-    int idx = day; // veya Pazartesi başlangıçlı maske için (day + 6) % 7
+        if (pompconfig.Pomp2RepeatType=="daily")
+  {
 
-    bool dayOk =contains( days,count,day);
-    bool timeOk = (pompconfig.Pomp2StartHour == hour &&
-                   pompconfig.Pomp2StartMinute == minute);
-
-    if (dayOk && timeOk && pump2.lastRunMinute!=minute) {
-      pump2.lastRunMinute = minute;
-      pump2.number=2; 
+      // Eğer masken Pazartesi ile başlıyorsa şu satırı kullan:
+      // int w = (day + 6) % 7;
+      // else doğrudan day kullan:
+      int idx = day;
+ 
+      bool timeOk = (pompconfig.Pomp2StartHour == hour &&
+                    pompconfig.Pomp2StartMinute == minute);
+  
+      if (timeOk && pom2LastWorkMinute!=minute ) {
+        pom2LastWorkMinute = minute;
       
-      startPump(pump2, (unsigned long)pompconfig.Pomp2WorkingTime * 1000UL, "Pomp 2");
-      
-      long relayDuration = (unsigned long)pompconfig.Pomp2WorkingTime * 1000; // ms’ye çevir
-      delay(relayDuration); 
-      handlePump(pump2, "Pomp 2");
+        
+        OpenPomp(2)  ;
+          
+        relay2Active = true;
+        WaitAndKeepAliveMqtt(pompconfig.Pomp2WorkingTime,2) ;
+        
+        ClosePomp(2);
 
-    } else if (!timeOk) {
-      if (pump2.lastRunMinute != minute) pump2.lastRunMinute = -1;
-      // Serial.println("Not Time   Pomp 2");
-    }
+      } else if (!timeOk) {
+        // dakika değiştiyse resetle ki gelecek dakikada tekrar tetiklenebilsin
+        if (pom1LastWorkMinute != minute) 
+            pom1LastWorkMinute = -1;
+        // Serial.println("Not Time   Pomp 1");
+      }
+
+  }
+   if (pompconfig.Pomp2RepeatType=="weekly")
+    {
+      int count;
+      int* days = parseDaysList(pompconfig.PompWork2WorkDays, count);
+
+      // Eğer masken Pazartesi ile başlıyorsa şu satırı kullan:
+      // int w = (day + 6) % 7;
+      // else doğrudan day kullan:
+      int idx = day;
+
+      bool dayOk =contains( days,count,day);
+      bool timeOk = (pompconfig.Pomp2StartHour == hour &&
+                    pompconfig.Pomp2StartMinute == minute);
+  
+      if (dayOk && timeOk && pom2LastWorkMinute!=minute ) {
+        pom2LastWorkMinute = minute;
+      
+        
+        OpenPomp(2)  ;
+          
+        relay2Active = true;
+        WaitAndKeepAliveMqtt(pompconfig.Pomp2WorkingTime,2) ;
+        
+        ClosePomp(2);
+
+      } else if (!timeOk) {
+        // dakika değiştiyse resetle ki gelecek dakikada tekrar tetiklenebilsin
+        if (pom2LastWorkMinute != minute) 
+            pom2LastWorkMinute = -1;
+        // Serial.println("Not Time   Pomp 1");
+      }
+
+    } 
+
   }
 
   // Çalışan pompaları non-blocking şekilde yönet
